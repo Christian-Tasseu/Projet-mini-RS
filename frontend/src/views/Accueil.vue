@@ -200,13 +200,16 @@ export default {
             authorization: `Bearer ${this.token}`,
           },
         });
-        if (reponse.ok){
-          this.$router.push('/profil')
+        if (reponse.ok) {
+          this.$router.push("/profil");
+        } else {
+          console.log(
+            "Erreur lors de la récupération des informations du profil"
+          );
         }
-        else{
-          console.log("Erreur lors de la récupération des informations du profil")
-        }
-      } catch (err) {console.error("Erreur réseau :", error);}
+      } catch (err) {
+        console.error("Erreur réseau :", error);
+      }
     },
     async publier() {
       const formData = new FormData();
