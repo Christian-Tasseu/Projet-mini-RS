@@ -1,22 +1,10 @@
 <template>
   <div class="contain">
     <div class="header">
-      <span @click="profilPage">
-        <font-awesome-icon icon="fa-solid fa-user" /> {{ username }}</span
-      >
+      <div @click="profilPage"><img :src="url_image_profile" alt="" /><span>{{ username }}</span></div>
+        
       <button translate="no" @click="deconnexion">Logout</button>
     </div>
-    <!-- <div class="search" translate="no">
-      <div class="search-bar">
-        <input
-          v-model="message"
-          type="text"
-          placeholder="Publier quelque chose..."
-          class="search-input"
-        />
-        <button class="post-btn" @click="publier">Post</button>
-      </div>
-    </div> -->
     <div class="post-contain">
       <textarea v-model="message" placeholder="Exprimez vous...🖋️"></textarea>
       <input
@@ -67,6 +55,8 @@
     </div>
     <transition-group tag="div" name="posts" class="posts">
       <div class="post" v-for="(post, index) in listPost" :key="post.id">
+        <img :src="post.url_photo" alt="" class="img-publisher">
+
         <span class="username">{{ post.username }}</span>
         <span class="message">{{ post.message }}</span>
         <span class="btn-delete" @click="deletePost(post.id, index)"
@@ -119,10 +109,12 @@ export default {
     return {
       token: "",
       username: "",
+      imgPublisher: "",
       users: [],
       listPost: [],
       poster: "",
       message: "",
+      url_image_profile: "",
       nbLikes: 0,
       selectedFile: null,
       imagePreview: null,
@@ -139,17 +131,19 @@ export default {
 
     //affichage à l'entête
     try {
-      const reponse = await fetch("http://localhost:3000/api/users", {
+      const reponse = await fetch("http://localhost:3000/api/profil", {
         headers: {
           authorization: `Bearer ${this.token}`,
         },
       });
 
       if (reponse) {
-        const data = await reponse.text();
-        this.username = data;
+        const data = await reponse.json();
+        this.username = data[0].username;
+        this.url_image_profile = data[0].url_photo;
+        console.log(this.url_image_profile)
       } else {
-        alert("???");
+        alert("Erreur lors del a récupération du profil");
       }
     } catch (error) {
       console.error("Erreur lors de la récupération du profil", error);
@@ -232,6 +226,7 @@ export default {
           this.listPost.unshift({
             id: data.id,
             username: this.username,
+            url_photo: this.url_image_profile,
             message: this.message,
             imageUrl: data.imageUrl || null,
             created_at: new Date(),
@@ -353,10 +348,20 @@ body {
   display: flex;
   justify-content: space-between;
 }
-.header:first-child {
+.header img{
+  width: 30px;
+  height: 30px;
+  border-radius: 100%;
+  object-fit: cover;
+  background-color: red;
+}
+.header span{
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
+  position: relative;
+  top: -8px;
+  left: 4px;
 }
 .header span:hover {
   color: blue;
@@ -435,23 +440,41 @@ textarea {
 }
 .post {
   width: 60%;
+  /* max-height: 470px; */
   margin: 10px auto;
-  padding: 15px 80px;
+  padding: 0px 80px 0px 80px;
   border-radius: 15px;
   background-color: white;
   text-align: left;
 }
+.post .img-publisher{
+  width: 50px;
+  height: 50px;
+  border-radius: 100%;
+  object-fit: cover;
+  background-color: red;
+  position: relative;
+  top: 25px;
+  left: -60px;
+  position: relative;
+}
 .post .username {
   display: block;
   font-weight: bold;
+  position: relative;
+  top: -30px;
 }
 .post .message {
   display: block;
   margin-top: 5px;
   font-size: 10px;
+  position: relative;
+  top: -30px;
 }
 .post .img-container {
   margin-top: 10px;
+  position: relative;
+  top: -30px;
 }
 .post .img {
   width: 100%;
@@ -460,6 +483,8 @@ textarea {
   object-position: center;
   border-radius: 8px;
   margin-top: 10px;
+  position: relative;
+  top: 0px;
 }
 .post .date {
   position: relative;
@@ -467,24 +492,31 @@ textarea {
   display: inline-block;
   font-size: 10px;
   color: rgb(44, 44, 103);
+  top: -30px;
 }
 .post .likes {
   display: inline-block;
   margin-top: 10px;
+  position: relative;
+  top: 0px;
 }
 .post .like {
   cursor: pointer;
+  position: relative;
+  top: -30px;
 }
 .redColor {
   color: red;
 }
 .post .nbLike {
   font-size: 11px;
+  position: relative;
+  top: -30px;
 }
 .post .btn-delete {
   position: relative;
   display: inline-block;
-  top: 0px;
+  top: -30px;
   left: 500px;
   font-size: 13px;
   color: rgba(255, 0, 0, 0.7);

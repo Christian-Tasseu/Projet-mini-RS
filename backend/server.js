@@ -210,7 +210,7 @@ app.post("/api/publier", verifyToken, multer, async (req, res) => {
   // });
 });
 
-//route d'affichage des publications
+//route d'affichage des publications---------------------------------------------------------------------------------
 app.get("/api/posts", verifyToken, async (req, res) => {
   try {
     const listPosts = [];
@@ -221,7 +221,7 @@ app.get("/api/posts", verifyToken, async (req, res) => {
     for (const i in rows) {
       try {
         const user = await db.query(
-          "SELECT username FROM users WHERE id = ?",
+          "SELECT username, url_photo FROM users WHERE id = ?",
           rows[i].user_id
         );
         const nbLikes = await db.query(
@@ -231,6 +231,7 @@ app.get("/api/posts", verifyToken, async (req, res) => {
         listPosts.push({
           id: rows[i].id,
           username: user[0][0].username,
+          url_photo: user[0][0].url_photo,
           message: rows[i].content,
           imageUrl: rows[i].imageUrl,
           created_at: rows[i].created_at,
