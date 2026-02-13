@@ -45,7 +45,7 @@ app.post("/api/inscription", async (req, res) => {
   try {
     const [result] = await db.query(
       "INSERT INTO users (username, email, mot_de_passe) VALUES (?, ?, ?)",
-      [username, email, hashedPassword]
+      [username, email, hashedPassword],
     );
     res
       .status(201)
@@ -63,7 +63,7 @@ app.post("/api/connexion", async (req, res) => {
   try {
     const [rows] = await db.query(
       "SELECT * FROM users WHERE username = ? or email = ?",
-      [username, username]
+      [username, username],
     );
     if (rows.length === 0) {
       return res.status(401).json({ message: "Utilisateur non trouvé." });
@@ -79,7 +79,7 @@ app.post("/api/connexion", async (req, res) => {
       secret_key,
       {
         expiresIn: 86400, // 24 heures
-      }
+      },
     );
     res.status(200).json({ message: "Connexion réussie.", token });
   } catch (error) {
@@ -110,32 +110,72 @@ app.get("/api/users", verifyToken, (req, res) => {
 });
 
 //routes de mise à jour du profil
-app.put(
-  "/api/profil/:userId",
-  verifyToken,
-  multer,
-  async (req, res) => {
-    const userId = req.params.userId;
-    const imageUrl = `${req.protocol}://${req.get("host")}/images/${
-      req.file.filename
-    }`;
-    try {
-      const result = await db.query(
-        "UPDATE users SET url_photo = ? WHERE id = ?",
-        [imageUrl, userId]
-      );
-      res
-        .status(200)
-        .json({ message: "Image de profil mise à jour", imageUrl: imageUrl });
-    } catch (error) {
-      console.error(
-        "Erreur lors de la mise à jour de l'image de profil :",
-        error
-      );
-      res.status(500).json({ message: "Erreur serveur" });
-    }
+app.put("/api/profil/:userId", verifyToken, multer, async (req, res) => {
+  const userId = req.params.userId;
+  const imageUrl = `${req.protocol}://${req.get("host")}/images/${
+    req.file.filename
+  }`;
+  try {
+    const result = await db.query(
+      "UPDATE users SET url_photo = ? WHERE id = ?",
+      [imageUrl, userId],
+    );
+    res
+      .status(200)
+      .json({ message: "Image de profil mise à jour", imageUrl: imageUrl });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la mise à jour de l'image de profil :",
+      error,
+    );
+    res.status(500).json({ message: "Erreur serveur" });
   }
-);
+});
+app.put("/api/profilName/:userId", verifyToken, async (req, res) => {
+  const userId = req.params.userId;
+  const { newName } = req.body;
+  try {
+    const result = await db.query(
+      "UPDATE users SET username = ? WHERE id = ?",
+      [newName, userId],
+    );
+    res.status(200).json({ message: "Nom d'utilisateur mis à jour" });
+  } catch (error) {
+    console.error(
+      "Erreur lors de la mise à jour du nom d'utilisateur :",
+      error,
+    );
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+app.put("/api/profilBio/:userId", verifyToken, async (req, res) => {
+  const userdId = req.params.userId;
+  const { newBio } = req.body;
+  try {
+    const result = await db.query("UPDATE users SET bio = ? WHERE id = ?", [
+      newBio,
+      userdId,
+    ]);
+    res.status(200).json({ message: "Bio mise à jour" });
+  } catch (err) {
+    console.error("Erreur lors de la mise à jour de la bio : ", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+app.put("/api/profilEmail/:userId", verifyToken, async (req, res) => {
+  const userId = req.params.userId;
+  const { newEmail } = req.body;
+  try {
+    const result = await db.query("UPDATE users SET email = ? WHERE id = ?", [
+      newEmail,
+      userId,
+    ]);
+    res.status(200).json({ message: "E-mail mis à jour" });
+  } catch (err) {
+    console.error("Erreur lors de la mise à jour de l'email : ", err);
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+});
 
 //route de récupération des usernames pour la page d'accueil-----------------------------------------------
 
@@ -186,15 +226,13 @@ app.post("/api/publier", verifyToken, multer, async (req, res) => {
   try {
     const [results] = await db.query(
       "INSERT INTO posts (user_id, content, imageUrl) VALUES (?, ?, ?)",
-      [userId, message, imageUrl]
+      [userId, message, imageUrl],
     );
-    res
-      .status(201)
-      .json({
-        id: results.insertId,
-        message: "Post créé !",
-        imageUrl: imageUrl,
-      });
+    res.status(201).json({
+      id: results.insertId,
+      message: "Post créé !",
+      imageUrl: imageUrl,
+    });
   } catch (error) {
     console.error("Erreur lors de la publication :", error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -216,17 +254,17 @@ app.get("/api/posts", verifyToken, async (req, res) => {
     const listPosts = [];
     const [rows] = await db.query(
       "SELECT posts.*, favs.post_id AS isLiked FROM posts LEFT JOIN favs ON posts.id = favs.post_id AND favs.user_id = ? ORDER BY posts.created_at DESC",
-      req.user.id
+      req.user.id,
     );
     for (const i in rows) {
       try {
         const user = await db.query(
           "SELECT username, url_photo FROM users WHERE id = ?",
-          rows[i].user_id
+          rows[i].user_id,
         );
         const nbLikes = await db.query(
           "SELECT COUNT(*) AS likeCount FROM favs WHERE post_id = ?",
-          rows[i].id
+          rows[i].id,
         );
         listPosts.push({
           id: rows[i].id,
@@ -241,7 +279,7 @@ app.get("/api/posts", verifyToken, async (req, res) => {
       } catch (error) {
         console.error(
           "Erreur lors de la récupération des publications :",
-          error
+          error,
         );
         res.status(500).json({ message: "Erreur serveur" });
       }
@@ -260,19 +298,17 @@ app.post("/api/addFav/:postId", verifyToken, async (req, res) => {
   try {
     const [results] = await db.query(
       "INSERT INTO favs (post_id, user_id) VALUES (?, ?)",
-      [postId, userId]
+      [postId, userId],
     );
     const nbLikes = await db.query(
       "SELECT COUNT(*) AS likeCount FROM favs WHERE post_id = ?",
-      postId
+      postId,
     );
-    res
-      .status(201)
-      .json({
-        id: results.insertId,
-        nbLikes: nbLikes[0][0].likeCount,
-        message: "Ajouté aux favoris",
-      });
+    res.status(201).json({
+      id: results.insertId,
+      nbLikes: nbLikes[0][0].likeCount,
+      message: "Ajouté aux favoris",
+    });
   } catch (error) {
     console.error("Erreur lors de l'ajout en favoris :", error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -286,18 +322,16 @@ app.delete("/api/removeFav/:postId", verifyToken, async (req, res) => {
   try {
     const result = await db.query(
       "DELETE FROM favs WHERE post_id = ? AND user_id = ?",
-      [postId, userId]
+      [postId, userId],
     );
     const nbLikes = await db.query(
       "SELECT COUNT(*) AS likeCount FROM favs WHERE post_id = ?",
-      postId
+      postId,
     );
-    res
-      .status(200)
-      .json({
-        message: "Retiré des favoris",
-        nbLikes: nbLikes[0][0].likeCount,
-      });
+    res.status(200).json({
+      message: "Retiré des favoris",
+      nbLikes: nbLikes[0][0].likeCount,
+    });
   } catch (error) {
     console.error("Erreur lors de la suppression des favoris :", error);
     res.status(500).json({ message: "Erreur serveur" });
@@ -311,7 +345,7 @@ app.delete("/api/post/:postId", verifyToken, async (req, res) => {
   try {
     const [rows] = await db.query(
       "SELECT imageUrl FROM posts WHERE id = ? AND user_id = ?",
-      [postId, userId]
+      [postId, userId],
     );
     const imageUrl = rows[0].imageUrl;
     if (imageUrl) {
@@ -324,7 +358,7 @@ app.delete("/api/post/:postId", verifyToken, async (req, res) => {
     }
     const result = await db.query(
       "DELETE FROM posts WHERE id = ? AND user_id = ?",
-      [postId, userId]
+      [postId, userId],
     );
     res.status(200).json({ message: "Suppression réussie" });
   } catch (error) {

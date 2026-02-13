@@ -1,8 +1,10 @@
 <template>
   <div class="contain">
     <div class="header">
-      <div @click="profilPage"><img :src="url_image_profile" alt="" /><span>{{ username }}</span></div>
-        
+      <div @click="profilPage">
+        <img :src="url_image_profile" alt="" /><span>{{ username }}</span>
+      </div>
+
       <button translate="no" @click="deconnexion">Logout</button>
     </div>
     <div class="post-contain">
@@ -55,7 +57,7 @@
     </div>
     <transition-group tag="div" name="posts" class="posts">
       <div class="post" v-for="(post, index) in listPost" :key="post.id">
-        <img :src="post.url_photo" alt="" class="img-publisher">
+        <img :src="post.url_photo" alt="" class="img-publisher" />
 
         <span class="username">{{ post.username }}</span>
         <span class="message">{{ post.message }}</span>
@@ -101,6 +103,7 @@ import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/fr";
 import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+import Swal from "sweetalert2";
 dayjs.extend(relativeTime);
 dayjs.locale("fr");
 
@@ -141,7 +144,7 @@ export default {
         const data = await reponse.json();
         this.username = data[0].username;
         this.url_image_profile = data[0].url_photo;
-        console.log(this.url_image_profile)
+        console.log(this.url_image_profile);
       } else {
         alert("Erreur lors del a récupération du profil");
       }
@@ -198,7 +201,7 @@ export default {
           this.$router.push("/profil");
         } else {
           console.log(
-            "Erreur lors de la récupération des informations du profil"
+            "Erreur lors de la récupération des informations du profil",
           );
         }
       } catch (err) {
@@ -307,22 +310,52 @@ export default {
     //   });
     // },
     deletePost(postId, index) {
-      if (confirm("Voulez-vous vraiment supprimer ce post ?")) {
-        fetch(`http://localhost:3000/api/post/${postId}`, {
-          method: "DELETE",
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        }).then((reponse) => {
-          if (reponse.ok) {
-            this.listPost.splice(index, 1);
-          }
-        });
-      }
+      Swal.fire({
+        title: "Es-tu sûr ?",
+        text: "Tu ne pourras pas revenir en arrière !",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#3085d6",
+        cancelButtonColor: "#d33",
+        confirmButtonText: "Oui, supprimer !",
+        cancelButtonText: "Annuler",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // Ton code de fetch actuel
+          fetch(`http://localhost:3000/api/post/${postId}`, {
+            method: "DELETE",
+            headers: { authorization: `Bearer ${this.token}` },
+          }).then((reponse) => {
+            if (reponse.ok) {
+              this.listPost.splice(index, 1);
+              Swal.fire("Supprimé !", "Ton post a disparu.", "success");
+            }
+          });
+        }
+      });
     },
-    deconnexion() {
-      localStorage.removeItem("token");
-      this.$router.push("/");
+    async deconnexion() {
+      Swal.fire({
+        title: 'À bientôt !',
+        text: 'Vous allez être déconnecté',
+        icon: 'question',
+        confirmButtonText: 'Déconnexion',
+        showCancelButton: true,
+        cancelButtonText: 'Annuler'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.removeItem("token");
+          Swal.fire({
+            title: 'Déconnecté !',
+            text: 'À bientôt !',
+            icon: 'success',
+            timer: 2000,
+            showConfirmButton: false
+          }).then(() => {
+            this.$router.push("/");
+          });
+        }
+      });
     },
   },
 };
@@ -337,7 +370,8 @@ body {
   border-radius: 10px;
   padding-bottom: 50px;
   background-color: #d4e2eb;
-  box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
+  box-shadow:
+    rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
     rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
 }
 .header {
@@ -348,14 +382,14 @@ body {
   display: flex;
   justify-content: space-between;
 }
-.header img{
+.header img {
   width: 30px;
   height: 30px;
   border-radius: 100%;
   object-fit: cover;
   background-color: red;
 }
-.header span{
+.header span {
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
@@ -447,7 +481,7 @@ textarea {
   background-color: white;
   text-align: left;
 }
-.post .img-publisher{
+.post .img-publisher {
   width: 50px;
   height: 50px;
   border-radius: 100%;
