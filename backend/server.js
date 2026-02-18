@@ -266,6 +266,10 @@ app.get("/api/posts", verifyToken, async (req, res) => {
           "SELECT COUNT(*) AS likeCount FROM favs WHERE post_id = ?",
           rows[i].id,
         );
+        const nbComments = await db.query(
+          "SELECT COUNT(*) AS commentCount FROM comments WHERE post_id = ?",
+          rows[i].id,
+        );
         listPosts.push({
           id: rows[i].id,
           username: user[0][0].username,
@@ -275,6 +279,7 @@ app.get("/api/posts", verifyToken, async (req, res) => {
           created_at: rows[i].created_at,
           nbLikes: nbLikes[0][0].likeCount,
           isLiked: rows[i].isLiked ? true : false,
+          nbComments: nbComments[0][0].commentCount,
         });
       } catch (error) {
         console.error(
@@ -364,6 +369,42 @@ app.delete("/api/post/:postId", verifyToken, async (req, res) => {
   } catch (error) {
     console.error("Erreur lors de la suppression :", error);
     res.status(500).json({ message: "Erreur serveur" });
+  }
+});
+
+// Session commentaire
+
+// Ajouter un commentaire
+app.post("/api/comments", verifyToken, async (req, res) => {
+  const { post_id, content } = req.body;
+  try {
+    const [results] = await db.query(
+      "INSERT INTO comments (post_id, user_id, content) VALUES (?, ?, ?)",
+      [post_id, req.user.id, content],
+    );
+    res
+      .status(200)
+      .json({ message: "Commentaire ajouté !", commentId: results.insertId });
+  } catch {
+    res.status(500).json({ message: "Erreur lors de l'ajout du commentaire" });
+  }
+});
+
+// Récupérer les commentaires d'un posr précis
+app.get("/api/comments/:postId", async (req, res) => {
+  try {
+    const [results] = await db.query(
+      `SELECT c.*, u.username, u.url_photo 
+      FROM comments c
+      JOIN users u ON c.user_id = u.id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC`,
+      [req.params.postId],
+    );
+    res.json(results);
+  } catch (err){
+    console.log("Erreur : ", err)
+    res.status(500).json({ message: "Erreur lors de la récupération " });
   }
 });
 

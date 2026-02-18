@@ -92,18 +92,18 @@
   </div>
 </template>
 <script>
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 const Toast = Swal.mixin({
   toast: true,
-  position: 'top-end',
+  position: "top-end",
   showConfirmButton: false,
   timer: 3000,
   timerProgressBar: true,
   didOpen: (toast) => {
-    toast.addEventListener('mouseenter', Swal.stopTimer)
-    toast.addEventListener('mouseleave', Swal.resumeTimer)
-  }
+    toast.addEventListener("mouseenter", Swal.stopTimer);
+    toast.addEventListener("mouseleave", Swal.resumeTimer);
+  },
 });
 
 export default {
@@ -189,8 +189,8 @@ export default {
         );
         if (reponse.ok) {
           Toast.fire({
-            icon: 'success',
-            title: 'Profil mis à jour avec succès !'
+            icon: "success",
+            title: "Profil mis à jour avec succès !",
           });
           this.urlPhoto = this.imagePreview;
           this.colorBlue = false;
@@ -228,8 +228,8 @@ export default {
         );
         if (reponse.ok) {
           Toast.fire({
-            icon: 'success',
-            title: 'Nom utilisateur mis à jour avec succès !'
+            icon: "success",
+            title: "Nom utilisateur mis à jour avec succès !",
           });
           this.username = this.newName;
           this.activeModifName = false;
@@ -255,8 +255,8 @@ export default {
         );
         if (reponse.ok) {
           Toast.fire({
-            icon: 'success',
-            title: 'Bio mise à jour avec succès !'
+            icon: "success",
+            title: "Bio mise à jour avec succès !",
           });
           this.bio = this.newBio;
           this.activeModifBio = false;
@@ -282,8 +282,8 @@ export default {
         );
         if (reponse.ok) {
           Toast.fire({
-            icon: 'success',
-            title: 'E-mail mis à jour avec succès !'
+            icon: "success",
+            title: "E-mail mis à jour avec succès !",
           });
           this.email = this.newEmail;
           this.activeModifEmail = false;
@@ -302,76 +302,133 @@ body {
   margin: 0;
 }
 .contain {
-  width: 50vw;
-  min-height: 90vh;
+  position: relative;
+  max-width: 1000px;
+  width: 90%;
+  margin: 1.5rem auto;
+  min-height: 60vh;
   border-radius: 10px;
-  padding-bottom: 50px;
+  padding: 1.5rem;
   background-color: white;
   box-shadow:
     rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
     rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+  box-sizing: border-box;
 }
 header {
-  height: 30px;
-  padding: 15px 30px;
+  height: auto;
+  padding: 15px 20px;
   border-radius: 10px 10px 0 0;
   background-color: #d4e2eb;
   display: flex;
-  justify-content: left;
-  font-size: 25px;
+  align-items: center;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 .img-profil {
   width: 200px;
   height: 200px;
-  margin: 50px auto;
-  border-radius: 100%;
+  margin: 1.5rem auto;
+  border-radius: 50%;
+  overflow: hidden;
 }
 .img-profil img {
-  width: 200px;
-  height: 200px;
-  border-radius: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  display: block;
 }
 .edit {
-  position: relative;
-  left: 470px;
-  top: -100px;
+  position: absolute;
+  right: 1.25rem;
+  top: 4.5rem;
   background-color: white;
   color: black;
-  font-size: 20px;
+  font-size: 1.1rem;
   border: none;
   border-radius: 5px;
-  width: 30px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   cursor: pointer;
   display: flex;
+  align-items: center;
   justify-content: center;
 }
 .edit:hover {
   color: blue;
 }
 .info-profil {
-  width: 40%;
+  width: calc(100% - 60px);
+  max-width: 720px;
+  margin: 0 auto;
   text-align: left;
-  padding: 10px 50px;
+  padding: 10px 20px;
+  box-sizing: border-box;
 }
 .info-profil p {
   font-weight: 600;
-  font-size: 15px;
-  opacity: 0.7;
+  font-size: 0.95rem;
+  opacity: 0.85;
+  margin-bottom: 0.25rem;
 }
 .info-profil span {
-  position: relative;
-  top: -10px;
-  left: 05px;
-  font-size: 18px;
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
   font-weight: 500;
-  display: inline-block;
-  margin-bottom: 10px;
 }
 .colorBlue {
   background-color: blue !important;
   opacity: 1 !important;
+}
+
+/* Desktop: two-column layout */
+@media (min-width: 900px) {
+  .contain {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+    padding: 2rem;
+  }
+  .img-profil {
+    margin: 0;
+    width: 200px;
+    height: 200px;
+  }
+  .edit {
+    right: 20px;
+    top: 20px;
+  }
+  .info-profil {
+    width: 100%;
+    padding: 1rem;
+  }
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .contain {
+    padding: 1rem;
+  }
+  .img-profil {
+    width: 140px;
+    height: 140px;
+    margin: 1rem auto;
+  }
+  .edit {
+    position: static;
+    margin: 0.5rem auto;
+    display: inline-flex;
+  }
+  .info-profil {
+    width: 100%;
+    padding: 0.5rem 1rem;
+  }
+  .info-profil span {
+    position: static;
+    top: auto;
+    left: auto;
+  }
 }
 </style>

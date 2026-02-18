@@ -35,7 +35,7 @@
         </button>
       </div>
     </div>
-    <div class="list-user">
+    <!-- <div class="list-user">
       <div class="user" v-for="user in users">
         <span
           style="
@@ -50,8 +50,18 @@
         /></span>
         <span>{{ user }}</span>
       </div>
-    </div>
+    </div> -->
     <!-- affichage des post  -->
+    <div v-if="isLoading" class="posts">
+      <div v-for="n in 3" :key="n" class="post" style="opacity: 0.7">
+        <div
+          class="skeleton skeleton-avatar"
+          style="position: relative; top: 25px; left: -60px"
+        ></div>
+        <div class="skeleton skeleton-title" style="margin-left: 20px"></div>
+        <div class="skeleton skeleton-text"></div>
+      </div>
+    </div>
     <div v-if="listPost.length == 0" class="alert">
       <p>Aucune publication pour l'instant...</p>
     </div>
@@ -94,6 +104,41 @@
           ><span><font-awesome-icon icon="fa-solid fa-clock" /></span
           >{{ formatDate(post.created_at) }}</span
         >
+
+        <span class="comment-icon" @click="toggleComments(post)">
+          <font-awesome-icon icon="fa-solid fa-comment" />
+          {{ post.nbComments }}
+        </span>
+
+        <div v-if="post.comments?.length === 0 && post.showComments">
+          <span style="color: #ccc"
+            ><font-awesome-icon icon="fa-solid fa-triangle-exclamation" /></span
+          ><span
+            style="font-size: 10px; display: inline-block; margin-left: 20px"
+            >Aucun commentaire pour ce post !</span
+          >
+        </div>
+        <div v-if="post.showComments" class="comments-container">
+          <div class="comment-form">
+            <input
+              v-model="post.newComment"
+              placeholder="Écrire un commentaire…"
+              @keyup.enter="addComment(post)"
+            />
+            <button @click="addComment(post)">Envoyer</button>
+          </div>
+          <div
+            v-for="comment in post.comments"
+            :key="comment.id"
+            class="comment-item"
+          >
+            <img :src="comment.url_photo" class="comment-avatar" />
+            <div class="comment-content">
+              <span class="comment-user">{{ comment.username }}</span>
+              <p class="comment-text">{{ comment.content }}</p>
+            </div>
+          </div>
+        </div>
       </div>
     </transition-group>
   </div>
@@ -102,14 +147,31 @@
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/fr";
-import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
 import Swal from "sweetalert2";
+
+const Toast = (icon, title, timer = 3000) => {
+  Swal.fire({
+    toast: true,
+    position: "top-end",
+    icon,
+    title,
+    showConfirmButton: false,
+    timer,
+    timerProgressBar: true,
+    didOpen: (toastEl) => {
+      toastEl.addEventListener("mouseenter", Swal.stopTimer);
+      toastEl.addEventListener("mouseleave", Swal.resumeTimer);
+    },
+  });
+};
+
 dayjs.extend(relativeTime);
 dayjs.locale("fr");
 
 export default {
   data() {
     return {
+      isLoading: true,
       token: "",
       username: "",
       imgPublisher: "",
@@ -121,10 +183,11 @@ export default {
       nbLikes: 0,
       selectedFile: null,
       imagePreview: null,
-      // comentLikes: "",
     };
   },
   async mounted() {
+    this.isLoading = true;
+    const delay = (ms) => new Promise((res) => setTimeout(res, ms)); // Fonction pour simuler un délai
     this.token = localStorage.getItem("token");
     if (!this.token) {
       // Si pas de token, on redirige vers la connexion
@@ -132,57 +195,64 @@ export default {
       return;
     }
 
-    //affichage à l'entête
     try {
-      const reponse = await fetch("http://localhost:3000/api/profil", {
-        headers: {
-          authorization: `Bearer ${this.token}`,
-        },
-      });
+      //affichage à l'entête
+      try {
+        const reponse = await fetch("http://localhost:3000/api/profil", {
+          headers: {
+            authorization: `Bearer ${this.token}`,
+          },
+        });
 
-      if (reponse) {
-        const data = await reponse.json();
-        this.username = data[0].username;
-        this.url_image_profile = data[0].url_photo;
-        console.log(this.url_image_profile);
-      } else {
-        alert("Erreur lors del a récupération du profil");
+        if (reponse) {
+          const data = await reponse.json();
+          this.username = data[0].username;
+          this.url_image_profile = data[0].url_photo;
+          console.log(this.url_image_profile);
+        } else {
+          alert("Erreur lors del a récupération du profil");
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du profil", error);
       }
-    } catch (error) {
-      console.error("Erreur lors de la récupération du profil", error);
-    }
 
-    //affichage des utilisateurs
-    try {
-      const reponse = await fetch("http://localhost:3000/api/listUsers");
+      //affichage des utilisateurs
+      try {
+        const reponse = await fetch("http://localhost:3000/api/listUsers");
 
-      if (reponse.ok) {
-        const data = reponse.json();
-        for (const i in data) {
-          for (const username in data[i]) {
-            this.users.push(data[i][username]);
+        if (reponse.ok) {
+          const data = reponse.json();
+          for (const i in data) {
+            for (const username in data[i]) {
+              this.users.push(data[i][username]);
+            }
           }
         }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des profils", error);
       }
-    } catch (error) {
-      console.error("Erreur lors de la récupération des profils", error);
-    }
 
-    //affichage des publications
-    try {
-      const reponse = await fetch("http://localhost:3000/api/posts", {
-        headers: {
-          authorization: `Bearer ${this.token}`,
-        },
-      });
-      if (reponse) {
-        const data = await reponse.json();
-        for (const i in data) {
-          this.listPost.push(data[i]);
+      //affichage des publications
+      try {
+        const reponse = await fetch("http://localhost:3000/api/posts", {
+          headers: {
+            authorization: `Bearer ${this.token}`,
+          },
+        });
+        if (reponse) {
+          const data = await reponse.json();
+          for (const i in data) {
+            this.listPost.push(data[i]);
+          }
         }
+      } catch (error) {
+        console.error("Erreur lors de la récupération des publications", error);
       }
+      await delay(3000); // Simule un délai de chargement
+      this.isLoading = false;
     } catch (error) {
-      console.error("Erreur lors de la récupération des commentaires", error);
+      this.isLoading = false;
+      console.error(error);
     }
   },
   methods: {
@@ -235,6 +305,10 @@ export default {
             created_at: new Date(),
             nbLikes: 0,
             isLiked: 0,
+            nbComments: 0,
+            showComments: false,
+            comments: [],
+            newComment: "",
           });
 
           this.message = "";
@@ -309,6 +383,39 @@ export default {
     //     alert("Impossible de mettre à jour le favori.");
     //   });
     // },
+    async toggleComments(post) {
+      post.showComments = !post.showComments;
+
+      // Si on ouvre et qu'on n'a pas encore chargé les coms
+      const res = await fetch(`http://localhost:3000/api/comments/${post.id}`);
+      post.comments = await res.json();
+    },
+
+    async addComment(post) {
+      if (!post.newComment) return;
+
+      const res = await fetch("http://localhost:3000/api/comments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: `Bearer ${this.token}`,
+        },
+        body: JSON.stringify({ post_id: post.id, content: post.newComment }),
+      });
+
+      if (res.ok) {
+        // On ajoute le com localement pour l'afficher direct
+        post.comments?.push({
+          username: this.username, // Ton nom actuel
+          url_photo: this.url_image_profile,
+          content: post.newComment,
+          created_at: new Date(),
+        });
+        post.newComment = "";
+        post.nbComments = (post.nbComments || 0) + 1; // Incrémenter le nombre de commentaires
+        Toast("success", "Commentaire ajouté !");
+      }
+    },
     deletePost(postId, index) {
       Swal.fire({
         title: "Es-tu sûr ?",
@@ -336,21 +443,21 @@ export default {
     },
     async deconnexion() {
       Swal.fire({
-        title: 'À bientôt !',
-        text: 'Vous allez être déconnecté',
-        icon: 'question',
-        confirmButtonText: 'Déconnexion',
+        title: "À bientôt !",
+        text: "Vous allez être déconnecté",
+        icon: "question",
+        confirmButtonText: "Déconnexion",
         showCancelButton: true,
-        cancelButtonText: 'Annuler'
+        cancelButtonText: "Annuler",
       }).then((result) => {
         if (result.isConfirmed) {
           localStorage.removeItem("token");
           Swal.fire({
-            title: 'Déconnecté !',
-            text: 'À bientôt !',
-            icon: 'success',
+            title: "Déconnecté !",
+            text: "À bientôt !",
+            icon: "success",
             timer: 2000,
-            showConfirmButton: false
+            showConfirmButton: false,
           }).then(() => {
             this.$router.push("/");
           });
@@ -363,103 +470,96 @@ export default {
 <style scoped>
 body {
   margin: 0;
+  overflow: hidden;
 }
 .contain {
-  width: 50vw;
-  min-height: 90vh;
-  border-radius: 10px;
-  padding-bottom: 50px;
-  background-color: #d4e2eb;
-  box-shadow:
-    rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  background-color: #f0f2f5;
 }
 .header {
-  height: 30px;
-  padding: 15px 30px;
-  border-radius: 10px 10px 0 0;
+  width: 96%;
+  height: auto;
+  padding: 15px 2%;
   background-color: white;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 .header img {
   width: 30px;
   height: 30px;
   border-radius: 100%;
   object-fit: cover;
-  background-color: red;
 }
 .header span {
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
-  position: relative;
-  top: -8px;
-  left: 4px;
-}
-.header span:hover {
-  color: blue;
 }
 .header button {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: center;
   border-radius: 20px;
   background-color: rgba(0, 0, 255, 0.5);
   color: white;
   font-size: 10px;
-  font-weight: 400;
+  padding: 6px 10px;
 }
-/* .post-contain {
-  padding: 20px;
-} */
+
 .post-contain {
   display: flex;
   align-items: center;
   border: 1px solid #ccc;
   border-radius: 25px;
-  width: 90%;
-  margin: 50px auto 20px auto;
+  width: 70%;
+  margin: 70px auto 20px auto;
   padding: 10px 15px;
   background-color: white;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  gap: 8px;
 }
 textarea {
   flex: 1;
   border: none;
   outline: none;
   font-size: 13px;
-  padding: 5px;
-  background-color: rgb(255, 255, 255);
-  color: black;
+  padding: 8px;
+  background-color: #fff;
+  color: #000;
+  min-height: 70px;
+}
+.btn-add-picture,
+.post-btn {
+  border-radius: 20px;
+  padding: 6px 12px;
+  font-size: 12px;
 }
 .btn-add-picture {
   background-color: #28a745;
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 5px 15px;
-  cursor: pointer;
-  font-size: 12px;
 }
 .post-btn {
   background-color: #007bff;
   color: white;
   border: none;
-  border-radius: 20px;
-  padding: 5px 15px;
-  margin-left: 10px;
-  cursor: pointer;
-  font-size: 12px;
 }
 .post-btn:hover {
   background-color: #0056b3;
 }
 .list-user {
   display: flex;
-  justify-content: space-around;
-  width: 60%;
-  margin: auto;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.5rem;
 }
 .user {
   display: flex;
@@ -470,16 +570,16 @@ textarea {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
-  /* position: relative; */
 }
 .post {
-  width: 60%;
-  /* max-height: 470px; */
+  width: 100%;
+  max-width: 900px;
   margin: 10px auto;
-  padding: 0px 80px 0px 80px;
+  padding: 1rem;
   border-radius: 15px;
   background-color: white;
   text-align: left;
+  box-sizing: border-box;
 }
 .post .img-publisher {
   width: 50px;
@@ -487,98 +587,206 @@ textarea {
   border-radius: 100%;
   object-fit: cover;
   background-color: red;
-  position: relative;
-  top: 25px;
-  left: -60px;
-  position: relative;
+  margin-right: 10px;
+  display: inline-block;
+  vertical-align: middle;
 }
 .post .username {
-  display: block;
+  display: inline-block;
   font-weight: bold;
-  position: relative;
-  top: -30px;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 .post .message {
   display: block;
-  margin-top: 5px;
-  font-size: 10px;
-  position: relative;
-  top: -30px;
+  margin-top: 8px;
+  font-size: 14px;
 }
 .post .img-container {
   margin-top: 10px;
-  position: relative;
-  top: -30px;
 }
 .post .img {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  object-position: center;
   border-radius: 8px;
   margin-top: 10px;
-  position: relative;
-  top: 0px;
 }
 .post .date {
-  position: relative;
-  left: 70%;
-  display: inline-block;
-  font-size: 10px;
+  display: block;
+  text-align: right;
+  font-size: 11px;
   color: rgb(44, 44, 103);
-  top: -30px;
+  margin-top: 8px;
 }
 .post .likes {
   display: inline-block;
   margin-top: 10px;
-  position: relative;
-  top: 0px;
 }
 .post .like {
   cursor: pointer;
-  position: relative;
-  top: -30px;
 }
 .redColor {
   color: red;
 }
 .post .nbLike {
   font-size: 11px;
-  position: relative;
-  top: -30px;
+}
+.comments-container {
+  background-color: #f1f1f1;
+  padding: 20px;
+  border-radius: 15px;
+  margin: 10px 0;
+}
+.comment-icon {
+  display: inline-block;
+  margin-left: 0px;
+  cursor: pointer;
+}
+.comment-item {
+  display: flex;
+  margin: 10px 0;
+}
+.comment-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+.comment-content {
+  background-color: white;
+  padding: 5px 12px;
+  border-radius: 18px;
+  font-size: 13px;
+}
+.comment-user {
+  font-weight: bold;
+  display: block;
+}
+.comment-form input {
+  display: inline-block;
+  width: 65%;
+  height: 28px;
+  margin-bottom: 10px;
+  margin-right: 15px;
+  border-radius: 15px;
+  background-color: white;
+  color: black;
+  border: 1px solid #ccc;
+  padding: 5px 12px;
+}
+.comment-form button {
+  display: inline-block;
+  width: 28%;
+  border: none;
+  background-color: #007bff;
+  color: white;
+  border-radius: 20px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
 }
 .post .btn-delete {
-  position: relative;
-  display: inline-block;
-  top: -30px;
-  left: 500px;
   font-size: 13px;
   color: rgba(255, 0, 0, 0.7);
   cursor: pointer;
   transition: 0.4s;
+  float: right;
 }
 .post .btn-delete:hover {
   color: red;
 }
-.posts-enter-from {
-  opacity: 0;
-  transform: translateY(-20px);
+
+/* Skeleton and animations (unchanged) */
+.skeleton {
+  background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+  border-radius: 5px;
+  background-size: 200% 100%;
+  animation: 1.5s shine linear infinite;
 }
-.posts-enter-active {
-  transition: all 0.5s ease;
+@keyframes shine {
+  to {
+    background-position-x: -200%;
+  }
 }
-.posts-leave-active {
-  transition: all 0.5s ease;
-  position: absolute;
-  width: 60%;
-  z-index: 10;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+.skeleton-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
 }
-.posts-leave-to {
-  opacity: 0;
-  transform: translateX(50px);
+.skeleton-title {
+  width: 30%;
+  height: 15px;
+  margin-bottom: 10px;
 }
-.posts-move {
-  transition: transform 0.5s ease;
+.skeleton-text {
+  width: 100%;
+  height: 100px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .post-contain {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  textarea {
+    min-height: 90px;
+  }
+  .post {
+    padding: 0.75rem;
+  }
+  .post .img-publisher {
+    margin: 0 10px 8px 0;
+    vertical-align: middle;
+  }
+  .post .username,
+  .post .message {
+    position: static;
+    top: auto;
+    left: auto;
+    margin-left: 0;
+  }
+  .post .date {
+    text-align: right;
+    left: auto;
+    top: auto;
+  }
+  .post .btn-delete {
+    position: static;
+    float: right;
+    margin-top: -35px;
+  }
+  .list-user {
+    width: 100%;
+  }
+  .post .img {
+    max-height: 250px;
+  }
+  .comment-form input {
+    width: 60%;
+  }
+  .comment-form button {
+    width: 35%;
+  }
+  .posts-leave-active {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .header span {
+    font-size: 16px;
+  }
+  .post .message {
+    font-size: 13px;
+  }
+  .comment-form input {
+    width: 58%;
+  }
+  .comment-form button {
+    width: 36%;
+  }
 }
 </style>
