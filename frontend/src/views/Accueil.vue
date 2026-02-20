@@ -66,84 +66,23 @@
       <p>Aucune publication pour l'instant...</p>
     </div>
     <transition-group tag="div" name="posts" class="posts">
-      <div class="post" v-for="(post, index) in listPost" :key="post.id">
-        <img :src="post.url_photo" alt="" class="img-publisher" />
-
-        <span class="username">{{ post.username }}</span>
-        <span class="message">{{ post.message }}</span>
-        <span class="btn-delete" @click="deletePost(post.id, index)"
-          ><font-awesome-icon icon="fa-solid fa-trash"
-        /></span>
-        <div v-if="post.imageUrl" class="img-container">
-          <img :src="post.imageUrl" alt="Post Image" class="img" />
-        </div>
-        <div class="likes">
-          <span
-            class="like"
-            v-if="post.isLiked"
-            :class="{ redColor: post.isLiked }"
-            @click="addAndRemoveFAv(post)"
-            ><font-awesome-icon icon="fa-solid fa-heart"
-          /></span>
-          <span
-            class="like"
-            v-if="!post.isLiked"
-            :class="{ redColor: (post.isLiked = false) }"
-            @click="addAndRemoveFAv(post)"
-            ><font-awesome-icon icon="fa-solid fa-heart"
-          /></span>
-          <span
-            class="nbLike"
-            v-if="post.isLiked"
-            :class="{ redColor: true }"
-            >{{ post.nbLikes }}</span
-          >
-          <span class="nbLike" v-else>{{ post.nbLikes }}</span>
-        </div>
-        <span class="date"
-          ><span><font-awesome-icon icon="fa-solid fa-clock" /></span
-          >{{ formatDate(post.created_at) }}</span
-        >
-
-        <span class="comment-icon" @click="toggleComments(post)">
-          <font-awesome-icon icon="fa-solid fa-comment" />
-          {{ post.nbComments }}
-        </span>
-
-        <div v-if="post.comments?.length === 0 && post.showComments">
-          <span style="color: #ccc"
-            ><font-awesome-icon icon="fa-solid fa-triangle-exclamation" /></span
-          ><span
-            style="font-size: 10px; display: inline-block; margin-left: 20px"
-            >Aucun commentaire pour ce post !</span
-          >
-        </div>
-        <div v-if="post.showComments" class="comments-container">
-          <div class="comment-form">
-            <input
-              v-model="post.newComment"
-              placeholder="Écrire un commentaire…"
-              @keyup.enter="addComment(post)"
-            />
-            <button @click="addComment(post)">Envoyer</button>
-          </div>
-          <div
-            v-for="comment in post.comments"
-            :key="comment.id"
-            class="comment-item"
-          >
-            <img :src="comment.url_photo" class="comment-avatar" />
-            <div class="comment-content">
-              <span class="comment-user">{{ comment.username }}</span>
-              <p class="comment-text">{{ comment.content }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PostCard
+        v-for="(post, index) in listPost"
+        :key="post.id"
+        :post="post"
+        :token="token"
+        :currentUser="username"
+        @delete-post="deletePost"
+        @like="addAndRemoveFAv"
+        @toggle-comments="toggleComments"
+        @add-comment="addComment"
+      />
     </transition-group>
   </div>
 </template>
 <script>
+import PostCard from "/src/views/PostCard.vue";
+import { apiService } from "../services/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/fr";
@@ -169,6 +108,9 @@ dayjs.extend(relativeTime);
 dayjs.locale("fr");
 
 export default {
+  components: {
+    PostCard,
+  },
   data() {
     return {
       isLoading: true,
@@ -197,62 +139,18 @@ export default {
 
     try {
       //affichage à l'entête
-      try {
-        const reponse = await fetch("http://localhost:3000/api/profil", {
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        });
-
-        if (reponse) {
-          const data = await reponse.json();
-          this.username = data[0].username;
-          this.url_image_profile = data[0].url_photo;
-          console.log(this.url_image_profile);
-        } else {
-          alert("Erreur lors del a récupération du profil");
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération du profil", error);
-      }
-
-      //affichage des utilisateurs
-      try {
-        const reponse = await fetch("http://localhost:3000/api/listUsers");
-
-        if (reponse.ok) {
-          const data = reponse.json();
-          for (const i in data) {
-            for (const username in data[i]) {
-              this.users.push(data[i][username]);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des profils", error);
-      }
-
+      const profilData = await apiService.getProfil(this.token);
+      this.username = profilData[0].username;
+      this.url_image_profile = profilData[0].url_photo;
       //affichage des publications
-      try {
-        const reponse = await fetch("http://localhost:3000/api/posts", {
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        });
-        if (reponse) {
-          const data = await reponse.json();
-          for (const i in data) {
-            this.listPost.push(data[i]);
-          }
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération des publications", error);
-      }
+      const posts = await apiService.getAllPosts(this.token);
+      this.listPost = posts;
+
       await delay(3000); // Simule un délai de chargement
       this.isLoading = false;
     } catch (error) {
       this.isLoading = false;
-      console.error(error);
+      console.error("Erreur lors du chargement des données : ", error);
     }
   },
   methods: {
@@ -261,13 +159,8 @@ export default {
     },
     async profilPage() {
       try {
-        const reponse = await fetch("http://localhost:3000/api/profilPage", {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        });
-        if (reponse.ok) {
+        const ok = await apiService.profilPage(this.token);
+        if (ok) {
           this.$router.push("/profil");
         } else {
           console.log(
@@ -275,7 +168,7 @@ export default {
           );
         }
       } catch (err) {
-        console.error("Erreur réseau :", error);
+        console.error("Erreur réseau :", err);
       }
     },
     async publier() {
@@ -285,23 +178,13 @@ export default {
         formData.append("image", this.selectedFile);
       }
       try {
-        const reponse = await fetch("http://localhost:3000/api/publier", {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-          body: formData,
-        });
-
-        const data = await reponse.json();
-
-        if (reponse.ok) {
+        const reponse = await apiService.publierPost(formData, this.token);
           this.listPost.unshift({
-            id: data.id,
+            id: reponse.id,
             username: this.username,
             url_photo: this.url_image_profile,
             message: this.message,
-            imageUrl: data.imageUrl || null,
+            imageUrl: reponse.imageUrl || null,
             created_at: new Date(),
             nbLikes: 0,
             isLiked: 0,
@@ -314,11 +197,8 @@ export default {
           this.message = "";
           this.selectedFile = null;
           this.imagePreview = null;
-        } else {
-          alert("Erreur lors de la publication");
-        }
       } catch (error) {
-        console.error("Erreur réseau :", error);
+        console.error("Erreur lors de la publication :", error);
       }
     },
     onFileSelected(e) {
@@ -330,83 +210,36 @@ export default {
       this.selectedFile = null;
       this.imagePreview = null;
     },
-    addAndRemoveFAv(post) {
-      if (post.isLiked === undefined || post.isLiked === false) {
+    async addAndRemoveFAv(post) {
+      if (!post.isLiked) {
+        const data = await apiService.addFav(post.id, this.token);
         post.isLiked = true;
-        const nbLikes = fetch(`http://localhost:3000/api/addFav/${post.id}`, {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            post.nbLikes = data.nbLikes;
-          });
+        post.nbLikes = data.nbLikes;
       } else {
+        const data = await apiService.removeFav(post.id, this.token);
         post.isLiked = false;
-        fetch(`http://localhost:3000/api/removeFav/${post.id}`, {
-          method: "DELETE",
-          headers: {
-            authorization: `Bearer ${this.token}`,
-          },
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            post.nbLikes = data.nbLikes;
-          });
+        post.nbLikes = data.nbLikes;
       }
     },
-    // LOGIQUE OPTIMISÉE DE L'IA POUR AJOUTER/RETIRER DES FAVORIS
-    //     addAndRemoveFAv(post) {
-    //   // 1. On sauvegarde l'état actuel au cas où le serveur échoue
-    //   const oldStatus = post.isFav;
-
-    //   // 2. On change visuellement tout de suite (UI fluide)
-    //   post.isFav = !post.isFav;
-
-    //   // 3. On choisit la route et la méthode
-    //   const isAdding = post.isFav;
-    //   const url = `http://localhost:3000/api/${isAdding ? 'addFav' : 'removeFav'}/${post.id}`;
-    //   const method = isAdding ? "POST" : "DELETE";
-
-    //   fetch(url, {
-    //     method: method,
-    //     headers: { authorization: `Bearer ${this.token}` }
-    //   })
-    //   .then(res => {
-    //     if (!res.ok) throw new Error("Erreur serveur");
-    //   })
-    //   .catch(err => {
-    //     // 4. Si ça rate, on remet l'ancien état et on prévient l'utilisateur
-    //     post.isFav = oldStatus;
-    //     alert("Impossible de mettre à jour le favori.");
-    //   });
-    // },
     async toggleComments(post) {
       post.showComments = !post.showComments;
 
-      // Si on ouvre et qu'on n'a pas encore chargé les coms
-      const res = await fetch(`http://localhost:3000/api/comments/${post.id}`);
-      post.comments = await res.json();
+      if (post.showComments && (!post.comments || post.comments.length === 0)) {
+        try {
+          post.comments = await apiService.getComments(post.id);
+        } catch (err) {
+          console.error("Erreur récupération commentaires :", err);
+        }
+      }
     },
-
     async addComment(post) {
       if (!post.newComment) return;
 
-      const res = await fetch("http://localhost:3000/api/comments", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          authorization: `Bearer ${this.token}`,
-        },
-        body: JSON.stringify({ post_id: post.id, content: post.newComment }),
-      });
-
-      if (res.ok) {
+      const ok = await apiService.addComment(post.id, post.newComment, this.token);
+      if (ok) {
         // On ajoute le com localement pour l'afficher direct
         post.comments?.push({
-          username: this.username, // Ton nom actuel
+          username: this.username,
           url_photo: this.url_image_profile,
           content: post.newComment,
           created_at: new Date(),
@@ -426,18 +259,13 @@ export default {
         cancelButtonColor: "#d33",
         confirmButtonText: "Oui, supprimer !",
         cancelButtonText: "Annuler",
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
-          // Ton code de fetch actuel
-          fetch(`http://localhost:3000/api/post/${postId}`, {
-            method: "DELETE",
-            headers: { authorization: `Bearer ${this.token}` },
-          }).then((reponse) => {
-            if (reponse.ok) {
-              this.listPost.splice(index, 1);
-              Swal.fire("Supprimé !", "Ton post a disparu.", "success");
-            }
-          });
+          const ok = await apiService.deletePost(postId, this.token);
+          if (ok) {
+            this.listPost.splice(index, 1);
+            Swal.fire("Supprimé !", "Ton post a disparu.", "success");
+          }
         }
       });
     },
@@ -508,6 +336,7 @@ body {
   border-radius: 20px;
   background-color: rgba(0, 0, 255, 0.5);
   color: white;
+  border: none;
   font-size: 10px;
   padding: 6px 10px;
 }
@@ -553,150 +382,11 @@ textarea {
 .post-btn:hover {
   background-color: #0056b3;
 }
-.list-user {
-  display: flex;
-  justify-content: flex-start;
-  gap: 12px;
-  width: 100%;
-  overflow-x: auto;
-  padding: 0.5rem;
-}
-.user {
-  display: flex;
-  flex-direction: column;
-  text-align: center;
-}
 .posts {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
 }
-.post {
-  width: 100%;
-  max-width: 900px;
-  margin: 10px auto;
-  padding: 1rem;
-  border-radius: 15px;
-  background-color: white;
-  text-align: left;
-  box-sizing: border-box;
-}
-.post .img-publisher {
-  width: 50px;
-  height: 50px;
-  border-radius: 100%;
-  object-fit: cover;
-  background-color: red;
-  margin-right: 10px;
-  display: inline-block;
-  vertical-align: middle;
-}
-.post .username {
-  display: inline-block;
-  font-weight: bold;
-  margin-left: 8px;
-  vertical-align: middle;
-}
-.post .message {
-  display: block;
-  margin-top: 8px;
-  font-size: 14px;
-}
-.post .img-container {
-  margin-top: 10px;
-}
-.post .img {
-  width: 100%;
-  max-height: 400px;
-  object-fit: cover;
-  border-radius: 8px;
-  margin-top: 10px;
-}
-.post .date {
-  display: block;
-  text-align: right;
-  font-size: 11px;
-  color: rgb(44, 44, 103);
-  margin-top: 8px;
-}
-.post .likes {
-  display: inline-block;
-  margin-top: 10px;
-}
-.post .like {
-  cursor: pointer;
-}
-.redColor {
-  color: red;
-}
-.post .nbLike {
-  font-size: 11px;
-}
-.comments-container {
-  background-color: #f1f1f1;
-  padding: 20px;
-  border-radius: 15px;
-  margin: 10px 0;
-}
-.comment-icon {
-  display: inline-block;
-  margin-left: 0px;
-  cursor: pointer;
-}
-.comment-item {
-  display: flex;
-  margin: 10px 0;
-}
-.comment-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  margin-right: 10px;
-}
-.comment-content {
-  background-color: white;
-  padding: 5px 12px;
-  border-radius: 18px;
-  font-size: 13px;
-}
-.comment-user {
-  font-weight: bold;
-  display: block;
-}
-.comment-form input {
-  display: inline-block;
-  width: 65%;
-  height: 28px;
-  margin-bottom: 10px;
-  margin-right: 15px;
-  border-radius: 15px;
-  background-color: white;
-  color: black;
-  border: 1px solid #ccc;
-  padding: 5px 12px;
-}
-.comment-form button {
-  display: inline-block;
-  width: 28%;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  border-radius: 20px;
-  padding: 6px 12px;
-  cursor: pointer;
-  font-size: 12px;
-}
-.post .btn-delete {
-  font-size: 13px;
-  color: rgba(255, 0, 0, 0.7);
-  cursor: pointer;
-  transition: 0.4s;
-  float: right;
-}
-.post .btn-delete:hover {
-  color: red;
-}
-
 /* Skeleton and animations (unchanged) */
 .skeleton {
   background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
@@ -734,59 +424,11 @@ textarea {
   textarea {
     min-height: 90px;
   }
-  .post {
-    padding: 0.75rem;
-  }
-  .post .img-publisher {
-    margin: 0 10px 8px 0;
-    vertical-align: middle;
-  }
-  .post .username,
-  .post .message {
-    position: static;
-    top: auto;
-    left: auto;
-    margin-left: 0;
-  }
-  .post .date {
-    text-align: right;
-    left: auto;
-    top: auto;
-  }
-  .post .btn-delete {
-    position: static;
-    float: right;
-    margin-top: -35px;
-  }
-  .list-user {
-    width: 100%;
-  }
-  .post .img {
-    max-height: 250px;
-  }
-  .comment-form input {
-    width: 60%;
-  }
-  .comment-form button {
-    width: 35%;
-  }
-  .posts-leave-active {
-    width: 100%;
-  }
 }
 
 @media (max-width: 480px) {
   .header span {
     font-size: 16px;
-  }
-  .post .message {
-    font-size: 13px;
-  }
-  .comment-form input {
-    width: 58%;
-  }
-  .comment-form button {
-    width: 36%;
   }
 }
 </style>

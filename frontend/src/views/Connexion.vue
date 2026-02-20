@@ -37,7 +37,7 @@ export default {
   },
   methods: {
     connexion() {
-      fetch("http://localhost:3000/api/connexion", {
+      fetch("http://localhost:3000/api/auth/connexion", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

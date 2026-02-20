@@ -31,7 +31,7 @@ export default {
     },
     methods: {
         inscription() {
-            fetch('http://localhost:3000/api/inscription', {
+            fetch('http://localhost:3000/api/auth/inscription', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
