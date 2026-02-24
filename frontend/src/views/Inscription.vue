@@ -1,23 +1,25 @@
 
 <template>
-    <div id="container">
-        <h2>Inscription</h2>
-        <form @submit.prevent="inscription">
-            <div class="form-group">
-                <label for="username">Nom d'utilisateur:</label>
-                <input v-model="username" type="text" id="username" name="username" required />
-            </div>
-            <div class="form-group">
-                <label for="email">E-mail:</label>
-                <input v-model="email" type="email" id="email" name="email" required />
-            </div>
-            <div class="form-group">
-                <label for="password">Mot de passe:</label>
-                <input v-model="mot_de_passe" type="password" id="password" name="password" required />
-            </div>
-            <button type="submit">S'inscrire</button>
-        </form>
+  <div class="wrapper-contain">
+    <div class="form-contain">
+      <header>Inscription</header>
+      <form @submit.prevent="inscription">
+        <div class="form-group">
+          <label for="username">Nom d'utilisateur:</label>
+          <input v-model="username" type="text" id="username" name="username" required />
+        </div>
+        <div class="form-group">
+          <label for="email">E-mail:</label>
+          <input v-model="email" type="email" id="email" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Mot de passe:</label>
+          <input v-model="mot_de_passe" type="password" id="password" name="password" required />
+        </div>
+        <button type="submit">S'inscrire</button>
+      </form>
     </div>
+  </div>
 </template>
 <script>
 import Swal from 'sweetalert2';
@@ -59,51 +61,69 @@ export default {
 };
 </script>
 <style scoped>
-#container {
-  max-width: 420px;
-  width: 92%;
-  margin: 2rem auto;
-  padding: 1.6rem;
-  border: 1px solid #565656;
+
+.wrapper-contain {
+  height: 100vh; 
+  width: 100vw;
+  display: grid;
+  place-items: center;
+  background: #f5f5f5;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.form-contain {
+  width: 100%;
+  max-width: 600px;
+  padding: 2rem 1.5rem;
+  background: white;
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  height: auto;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  text-align: center;
   box-sizing: border-box;
 }
 
-h1, h2 {
-  font-size: 1.8rem;
+header {
+  margin: 0; 
+  padding: 20px;
+  margin-bottom: 40px;
+  border-radius: 8px 8px 0 0;
+  background-color: #d4e2eb;
+  font-size: 1.25rem;
+  font-weight: 700;
   text-align: center;
-  color: rgb(57,57,57);
-  margin: 0 0 1rem;
 }
 
 .form-group {
-  margin-bottom: 1.25rem;
+  width: 100%;
+  margin-bottom: 1.85rem;
 }
 
 label {
   display: block;
-  margin: 0 0 0.5rem;
-  color: rgb(34,34,34);
+  color: rgb(34, 34, 34);
+  margin-left: 30px;
+  margin-bottom: 20px;
   text-align: left;
-  margin-left: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: bold;
 }
 
 input {
-  width: 100%;
+  width: 80%;
+  height: 40px;
   padding: 8px;
-  box-sizing: border-box;
   background-color: white;
   color: black;
-  border: 1px solid rgba(130,138,255,0.25);
+  border: 1px solid rgba(130, 138, 255, 0.25);
   border-radius: 5px;
   outline: none;
 }
 
 button {
-  width: 100%;
+  width: 50%;
   padding: 10px 16px;
   background-color: #333584;
   color: white;
@@ -118,11 +138,11 @@ button:active {
   background-color: #080565;
 }
 
-@media (min-width: 768px) {
-  #container {
-    width: 400px;
-    margin: 50px auto;
-    padding: 20px;
+/* Desktop: keep original spacing */
+@media (max-width: 768px) {
+  .form-contain {
+    width: 70%;
+    height: 100%;
   }
   .form-group {
     margin-bottom: 55px;
@@ -130,16 +150,20 @@ button:active {
   label {
     margin-left: 40px;
   }
-  input, button {
+  input,
+  button {
     width: 90%;
   }
-  h1, h2 {
+  h1,
+  h2 {
     font-size: 40px;
   }
 }
 
+/* Very small screens */
 @media (max-width: 360px) {
-  h1, h2 {
+  h1,
+  h2 {
     font-size: 1.4rem;
   }
   .form-group {

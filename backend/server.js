@@ -2,22 +2,21 @@
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const db = require("./config/db");
-const fs = require("fs");
+
 const userRoute = require("./routes/user");
 const postRoute = require("./routes/post");
 const favRoute = require("./routes/fav");
 const commentRoute = require("./routes/comment");
 const profilRoute = require("./routes/profil");
+
 const app = express();
 const port = 3000;
-const multer = require("./middleware/multer-config");
 
 app.use(cors());
 app.use(express.json());
+
 app.use("/images", express.static("images"));
+
 app.use("/api/auth", userRoute);
 app.use("/api/post", postRoute);
 app.use("/api/fav", favRoute);

@@ -1,93 +1,77 @@
 <template>
-  <div class="contain">
-    <header>Profil</header>
-    <div v-if="imagePreview" class="img-profil">
-      <img :src="imagePreview" alt="Photo de profil" />
-      <button
-        @click="annulerImage"
-        style="
-          background-color: red;
-          position: relative;
-          top: -57px;
-          left: 170px;
-        "
-      >
-        <font-awesome-icon icon="fa-solid fa-trash" />
+  <div class="wrapper-contain">
+    <div class="contain">
+      <header>Profil</header>
+      <div v-if="imagePreview" class="img-profil">
+        <img :src="imagePreview" alt="Photo de profil" />
+        <button @click="annulerImage" class="cancel-btn">
+          <font-awesome-icon icon="fa-solid fa-trash" />
+        </button>
+      </div>
+      <div v-else class="img-profil">
+        <img :src="urlPhoto" alt="Photo de profil" />
+      </div>
+      <input
+        type="file"
+        @change="onFileSelected"
+        ref="inputFile"
+        accept="image/*"
+        style="display: none"
+      />
+
+      <button @click="$refs.inputFile.click()" class="edit">
+        <font-awesome-icon icon="fa-solid fa-edit" />
       </button>
-    </div>
-    <div v-else class="img-profil">
-      <img :src="urlPhoto" alt="Photo de profil" />
-    </div>
-    <input
-      type="file"
-      @change="onFileSelected"
-      ref="inputFile"
-      accept="image/*"
-      style="display: none"
-    />
-
-    <button @click="$refs.inputFile.click()" class="edit">
-      <font-awesome-icon icon="fa-solid fa-edit" />
-    </button>
-    <div class="info-profil">
-      <p>Nom utilisateur</p>
-      <span v-if="activeModifName === false">{{ username }}</span>
-      <span v-else><input v-model="newName" type="text" /></span>
-      <span
-        v-if="activeModifName === false"
-        @click="modifName()"
-        style="margin-left: 70px"
-        class="edit"
-        ><font-awesome-icon icon="fa-solid fa-edit"
-      /></span>
-      <span
-        v-else
-        @click="validNewName(userId)"
-        style="margin-left: 70px"
-        class="edit"
-        ><font-awesome-icon icon="fa-solid fa-save"
-      /></span>
-
-      <p>Bio</p>
-      <span v-if="activeModifBio === false">{{ bio }}</span>
-      <span v-else><input v-model="newBio" type="text" /></span>
-      <span
-        v-if="activeModifBio === false"
-        @click="modifBio()"
-        style="margin-left: 70px"
-        class="edit"
-        ><font-awesome-icon icon="fa-solid fa-edit"
-      /></span>
-      <span v-else @click="validNewBio()" style="margin-left: 70px" class="edit"
-        ><font-awesome-icon icon="fa-solid fa-save"
-      /></span>
-
-      <p>E-mail</p>
-      <span v-if="activeModifEmail === false">{{ email }}</span>
-      <span v-else><input v-model="newEmail" type="text" /></span>
-      <span
-        v-if="activeModifEmail === false"
-        @click="modifEmail()"
-        style="margin-left: 70px"
-        class="edit"
-        ><font-awesome-icon icon="fa-solid fa-edit"
-      /></span>
-      <span
-        v-else
-        @click="validNewEmail()"
-        style="margin-left: 70px"
-        class="edit"
-        ><font-awesome-icon icon="fa-solid fa-save"
-      /></span>
-    </div>
-    <div class="updateProfil">
-      <button
-        @click="updateProfil"
-        style="background-color: blue; opacity: 0.3"
-        :class="{ colorBlue }"
-      >
-        Appliquer les modifications
-      </button>
+      <div class="info-profil">
+        <div class="info-row">
+          <p>Nom</p>
+          <span class="value" v-if="!activeModifName">{{ username }}</span>
+          <span class="value" v-else>
+            <input ref="nameInput" v-model="newName" type="text" />
+            <button class="cancel" @click="cancelName">Annuler</button>
+          </span>
+          <span class="edit-icon" @click="activeModifName ? validNewName(userId) : modifName()">
+            <font-awesome-icon :icon="activeModifName ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
+          </span>
+        </div>
+        <div class="info-row">
+          <p>Bio</p>
+          <span class="value" v-if="!activeModifBio">{{ bio }}</span>
+          <span class="value" v-else>
+            <input ref="bioInput" v-model="newBio" type="text" />
+            <button class="cancel" @click="cancelBio">Annuler</button>
+          </span>
+          <span class="edit-icon" @click="activeModifBio ? validNewBio() : modifBio()">
+            <font-awesome-icon :icon="activeModifBio ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
+          </span>
+        </div>
+        <div class="info-row">
+          <p>E-mail</p>
+          <span class="value" v-if="!activeModifEmail">{{ email }}</span>
+          <span class="value" v-else>
+            <input ref="emailInput" v-model="newEmail" type="text" />
+            <button class="cancel" @click="cancelEmail">Annuler</button>
+          </span>
+          <span class="edit-icon" @click="activeModifEmail ? validNewEmail() : modifEmail()">
+            <font-awesome-icon :icon="activeModifEmail ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
+          </span>
+        </div>
+      </div>
+      <div class="updateProfil">
+        <button
+          @click="updateProfil"
+          class="update-btn"
+          :class="{ colorBlue }
+        ">
+          Appliquer les modifications
+        </button>
+        <button
+          @click="goHome"
+          class="home-btn"
+        >
+          Retour à l'accueil
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -178,7 +162,7 @@ export default {
       }
       try {
         const reponse = await fetch(
-          `http://localhost:3000/api/profil/${this.userId}`,
+          `http://localhost:3000/api/profil/profilImage/${this.userId}`,
           {
             method: "PUT",
             headers: {
@@ -205,18 +189,24 @@ export default {
     },
     // Modification : nom, bio, email
     modifName() {
+      this.newName = this.username;
       this.activeModifName = true;
+      this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
     },
     modifBio() {
+      this.newBio = this.bio;
       this.activeModifBio = true;
+      this.$nextTick(() => this.$refs.bioInput && this.$refs.bioInput.focus());
     },
     modifEmail() {
+      this.newEmail = this.email;
       this.activeModifEmail = true;
+      this.$nextTick(() => this.$refs.emailInput && this.$refs.emailInput.focus());
     },
     async validNewName(userId) {
       try {
         const reponse = await fetch(
-          `http://localhost:3000/api/profilName/${this.userId}`,
+          `http://localhost:3000/api/profil/profilName/${this.userId}`,
           {
             method: "PUT",
             headers: {
@@ -243,7 +233,7 @@ export default {
     async validNewBio(userId) {
       try {
         const reponse = await fetch(
-          `http://localhost:3000/api/profilBio/${this.userId}`,
+          `http://localhost:3000/api/profil/profilBio/${this.userId}`,
           {
             method: "PUT",
             headers: {
@@ -270,7 +260,7 @@ export default {
     async validNewEmail() {
       try {
         const reponse = await fetch(
-          `http://localhost:3000/api/profilEmail/${this.userId}`,
+          `http://localhost:3000/api/profil/profilEmail/${this.userId}`,
           {
             method: "PUT",
             headers: {
@@ -294,54 +284,89 @@ export default {
         console.error("Erreur réseau lors de la mise à jour du profil:", err);
       }
     },
+    goHome() {
+      this.$router.push('/accueil');
+    },
+    cancelName() {
+      this.newName = '';
+      this.activeModifName = false;
+    },
+    cancelBio() {
+      this.newBio = '';
+      this.activeModifBio = false;
+    },
+    cancelEmail() {
+      this.newEmail = '';
+      this.activeModifEmail = false;
+    },
   },
 };
 </script>
-<style>
-body {
-  margin: 0;
-}
-.contain {
-  position: relative;
-  max-width: 1000px;
-  width: 90%;
-  margin: 1.5rem auto;
-  min-height: 60vh;
-  border-radius: 10px;
-  padding: 1.5rem;
-  background-color: white;
-  box-shadow:
-    rgba(14, 30, 37, 0.12) 0px 2px 4px 0px,
-    rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
-  box-sizing: border-box;
-}
-header {
-  height: auto;
-  padding: 15px 20px;
-  border-radius: 10px 10px 0 0;
-  background-color: #d4e2eb;
-  display: flex;
-  align-items: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-.img-profil {
-  width: 200px;
-  height: 200px;
-  margin: 1.5rem auto;
-  border-radius: 50%;
+<style scoped>
+.wrapper-contain {
+  height: 100vh; 
+  width: 100vw;
+  display: grid;
+  place-items: center;
+  background: #f5f5f5;
+  padding: 1rem;
   overflow: hidden;
 }
+
+.contain {
+  width: 100%;
+  max-width: 900px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  position: relative;
+}
+
+header {
+  margin: 0; 
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px 8px 0 0;
+  background-color: #d4e2eb;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.img-profil {
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 1rem;
+  border-radius: 50%;
+  overflow: hidden;
+  position: relative;
+}
+
 .img-profil img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
-.edit {
+
+.img-profil .cancel-btn {
   position: absolute;
-  right: 1.25rem;
-  top: 4.5rem;
+  top: 5px;
+  right: 5px;
+  background-color: red;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.edit {
   background-color: white;
   color: black;
   font-size: 1.1rem;
@@ -350,63 +375,123 @@ header {
   width: 38px;
   height: 38px;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
+
 .edit:hover {
   color: blue;
 }
+
 .info-profil {
-  width: calc(100% - 60px);
-  max-width: 720px;
-  margin: 0 auto;
-  text-align: left;
-  padding: 10px 20px;
-  box-sizing: border-box;
+  width: 100%;
+  margin-top: 1rem;
 }
-.info-profil p {
+
+.info-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.info-row p {
+  flex: 0 0 120px;
   font-weight: 600;
-  font-size: 0.95rem;
   opacity: 0.85;
-  margin-bottom: 0.25rem;
+  margin: 0;
 }
-.info-profil span {
-  display: block;
-  margin-bottom: 0.75rem;
+
+.info-row .value {
+  flex: 1;
   font-size: 1rem;
   font-weight: 500;
 }
-.colorBlue {
-  background-color: blue !important;
-  opacity: 1 !important;
+
+.info-row .value input {
+  width: 100%;
+  padding: 4px 8px;
+  box-sizing: border-box;
 }
 
-/* Desktop: two-column layout */
+.info-row .edit-icon {
+  margin-left: 10px;
+  cursor: pointer;
+  color: #333;
+}
+
+.info-row .edit-icon:hover {
+  color: blue;
+}
+
+.info-row .cancel {
+  margin-left: 10px;
+  background: transparent;
+  border: none;
+  color: #c00;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.info-row .cancel:hover {
+  text-decoration: underline;
+}
+
+.updateProfil {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.updateProfil .update-btn,
+.updateProfil .home-btn {
+  padding: 10px 20px;
+  background-color: blue;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  opacity: 0.3;
+  margin: 0.5rem;
+  transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
+}
+
+.updateProfil .update-btn.colorBlue {
+  opacity: 1;
+}
+
+.updateProfil .home-btn {
+  background-color: #555;
+  opacity: 1;
+}
+
+.updateProfil .update-btn:hover{
+  opacity: 1;
+  background-color: #1a1aff;
+}
+
+.updateProfil .home-btn:hover {
+  opacity: 1;
+  background-color: #ff7878;
+}
+
+.updateProfil .update-btn:active,
+.updateProfil .home-btn:active {
+  transform: scale(0.97);
+  background-color: #0000cc;
+}
+
+.updateProfil .home-btn:active {
+  transform: scale(0.97);
+  background-color: #d60101;
+}
+
 @media (min-width: 900px) {
   .contain {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 1.5rem;
-    align-items: start;
-    padding: 2rem;
+    padding: 2rem 3rem;
   }
   .img-profil {
-    margin: 0;
     width: 200px;
     height: 200px;
   }
-  .edit {
-    right: 20px;
-    top: 20px;
-  }
-  .info-profil {
-    width: 100%;
-    padding: 1rem;
-  }
 }
 
-/* Mobile adjustments */
 @media (max-width: 600px) {
   .contain {
     padding: 1rem;
@@ -414,21 +499,6 @@ header {
   .img-profil {
     width: 140px;
     height: 140px;
-    margin: 1rem auto;
-  }
-  .edit {
-    position: static;
-    margin: 0.5rem auto;
-    display: inline-flex;
-  }
-  .info-profil {
-    width: 100%;
-    padding: 0.5rem 1rem;
-  }
-  .info-profil span {
-    position: static;
-    top: auto;
-    left: auto;
   }
 }
 </style>

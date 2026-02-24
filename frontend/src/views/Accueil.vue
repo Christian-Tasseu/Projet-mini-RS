@@ -1,7 +1,7 @@
 <template>
   <div class="contain">
     <div class="header">
-      <div @click="profilPage">
+      <div @click="profilPage" class="username">
         <img :src="url_image_profile" alt="" /><span>{{ username }}</span>
       </div>
 
@@ -157,6 +157,7 @@ export default {
     formatDate(date) {
       return dayjs(date).fromNow();
     },
+    // Redirection vers la page de profil
     async profilPage() {
       try {
         const ok = await apiService.profilPage(this.token);
@@ -171,6 +172,7 @@ export default {
         console.error("Erreur réseau :", err);
       }
     },
+    // Publication d'un post
     async publier() {
       const formData = new FormData();
       formData.append("message", this.message);
@@ -179,24 +181,24 @@ export default {
       }
       try {
         const reponse = await apiService.publierPost(formData, this.token);
-          this.listPost.unshift({
-            id: reponse.id,
-            username: this.username,
-            url_photo: this.url_image_profile,
-            message: this.message,
-            imageUrl: reponse.imageUrl || null,
-            created_at: new Date(),
-            nbLikes: 0,
-            isLiked: 0,
-            nbComments: 0,
-            showComments: false,
-            comments: [],
-            newComment: "",
-          });
+        this.listPost.unshift({
+          id: reponse.id,
+          username: this.username,
+          url_photo: this.url_image_profile,
+          message: this.message,
+          imageUrl: reponse.imageUrl || null,
+          created_at: new Date(),
+          nbLikes: 0,
+          isLiked: 0,
+          nbComments: 0,
+          showComments: false,
+          comments: [],
+          newComment: "",
+        });
 
-          this.message = "";
-          this.selectedFile = null;
-          this.imagePreview = null;
+        this.message = "";
+        this.selectedFile = null;
+        this.imagePreview = null;
       } catch (error) {
         console.error("Erreur lors de la publication :", error);
       }
@@ -210,6 +212,7 @@ export default {
       this.selectedFile = null;
       this.imagePreview = null;
     },
+    // Ajout et suppresion de favoris
     async addAndRemoveFAv(post) {
       if (!post.isLiked) {
         const data = await apiService.addFav(post.id, this.token);
@@ -221,6 +224,7 @@ export default {
         post.nbLikes = data.nbLikes;
       }
     },
+    // Affichage des commentaires
     async toggleComments(post) {
       post.showComments = !post.showComments;
 
@@ -232,12 +236,16 @@ export default {
         }
       }
     },
+    // Ajout de commentaire
     async addComment(post) {
       if (!post.newComment) return;
 
-      const ok = await apiService.addComment(post.id, post.newComment, this.token);
+      const ok = await apiService.addComment(
+        post.id,
+        post.newComment,
+        this.token,
+      );
       if (ok) {
-        // On ajoute le com localement pour l'afficher direct
         post.comments?.push({
           username: this.username,
           url_photo: this.url_image_profile,
@@ -245,10 +253,11 @@ export default {
           created_at: new Date(),
         });
         post.newComment = "";
-        post.nbComments = (post.nbComments || 0) + 1; // Incrémenter le nombre de commentaires
+        post.nbComments = (post.nbComments || 0) + 1;
         Toast("success", "Commentaire ajouté !");
       }
     },
+    // Suppression d'un post
     deletePost(postId, index) {
       Swal.fire({
         title: "Es-tu sûr ?",
@@ -269,6 +278,7 @@ export default {
         }
       });
     },
+    // D2connexion
     async deconnexion() {
       Swal.fire({
         title: "À bientôt !",
@@ -311,13 +321,28 @@ body {
   background-color: #f0f2f5;
 }
 .header {
-  width: 96%;
+  width: 100%;
   height: auto;
   padding: 15px 2%;
   background-color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.username {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  padding: 10px;
+  border-radius: 8px;
+}
+.username:hover {
+  background-color: rgba(0, 0, 255, 0.1);
+  transition-duration: 0.2s;
+}
+.username:hover span {
+  color: blue;
+  transition-duration: 0.2s;
 }
 .header img {
   width: 30px;
@@ -326,9 +351,11 @@ body {
   object-fit: cover;
 }
 .header span {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   cursor: pointer;
+  position: relative;
+  margin-left: 10px;
 }
 .header button {
   display: flex;
@@ -337,8 +364,8 @@ body {
   background-color: rgba(0, 0, 255, 0.5);
   color: white;
   border: none;
-  font-size: 10px;
-  padding: 6px 10px;
+  font-size: 13px;
+  padding: 10px 14px;
 }
 
 .post-contain {
