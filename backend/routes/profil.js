@@ -10,6 +10,8 @@ router.post("/profilPage", auth, profilCtrl.getProfilPage);
 router.get("/profilPage/:userId", auth, profilCtrl.getProfilData);
 router.put("/profilName/:userId", auth, profilCtrl.updateName);
 router.put("/profilBio/:userId", auth, profilCtrl.updateBio);
-router.put("/profilEmail/:userId", auth, profilCtrl.updateBio);
+router.put("/profilEmail/:userId", auth, profilCtrl.updateEmail);
 router.put("/profilImage/:userId", auth, multer, profilCtrl.updateImage);
+router.get("/public/:userId", auth, profilCtrl.getPublicProfile);
+
 module.exports = router;

@@ -40,6 +40,7 @@ exports.getAllPosts = async (req, res) => {
     const sql = `
       SELECT 
         p.*, 
+        u.id AS userId,
         u.username, 
         u.url_photo,
         (SELECT COUNT(*) FROM favs WHERE post_id = p.id) AS nbLikes,
@@ -55,6 +56,7 @@ exports.getAllPosts = async (req, res) => {
     // On formate légèrement pour correspondre à ce que ton Frontend attend
     const listPosts = rows.map((row) => ({
       id: row.id,
+      userId: row.userId,
       username: row.username,
       url_photo: row.url_photo,
       message: row.content,

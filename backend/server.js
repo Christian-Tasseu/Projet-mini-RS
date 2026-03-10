@@ -8,6 +8,7 @@ const postRoute = require("./routes/post");
 const favRoute = require("./routes/fav");
 const commentRoute = require("./routes/comment");
 const profilRoute = require("./routes/profil");
+const followRoute = require("./routes/follow");
 
 const app = express();
 const port = 3000;
@@ -22,6 +23,7 @@ app.use("/api/post", postRoute);
 app.use("/api/fav", favRoute);
 app.use("/api/comment", commentRoute);
 app.use("/api/profil", profilRoute);
+app.use("/api/follow", followRoute);
 
 //Route principal
 app.get("/", (req, res) => {

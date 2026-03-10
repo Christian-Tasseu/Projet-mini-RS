@@ -76,6 +76,7 @@
         @like="addAndRemoveFAv"
         @toggle-comments="toggleComments"
         @add-comment="addComment"
+        @go-to-profile="goToProfile"
       />
     </transition-group>
   </div>
@@ -142,11 +143,12 @@ export default {
       const profilData = await apiService.getProfil(this.token);
       this.username = profilData[0].username;
       this.url_image_profile = profilData[0].url_photo;
+
       //affichage des publications
       const posts = await apiService.getAllPosts(this.token);
       this.listPost = posts;
 
-      await delay(3000); // Simule un délai de chargement
+      await delay(0); // Simule un délai de chargement
       this.isLoading = false;
     } catch (error) {
       this.isLoading = false;
@@ -160,9 +162,9 @@ export default {
     // Redirection vers la page de profil
     async profilPage() {
       try {
-        const ok = await apiService.profilPage(this.token);
-        if (ok) {
-          this.$router.push("/profil");
+        const userId = await apiService.profilPage(this.token);
+        if (userId) {
+          this.$router.push(`/profil/${userId.id}`);
         } else {
           console.log(
             "Erreur lors de la récupération des informations du profil",
@@ -223,6 +225,10 @@ export default {
         post.isLiked = false;
         post.nbLikes = data.nbLikes;
       }
+    },
+    // Navigation vers le profil
+    goToProfile(post) {
+      this.$router.push(`/profil/${post.userId}`);
     },
     // Affichage des commentaires
     async toggleComments(post) {
