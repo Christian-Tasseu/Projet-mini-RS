@@ -147,4 +147,33 @@ export const apiService = {
     });
     return res.ok;
   },
+
+  // Chat
+  async getAllUsers(token) {
+    const res = await fetch(`${BASE_URL}/auth/all`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  async getMessages(otherUserId, token) {
+    const res = await fetch(`${BASE_URL}/message/${otherUserId}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  async sendMessage(receiverId, content, token) {
+    const res = await fetch(`${BASE_URL}/message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ receiver_id: receiverId, content }),
+    });
+    return res.json();
+  },
 };

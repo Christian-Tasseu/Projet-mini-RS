@@ -50,3 +50,17 @@ exports.connexion = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur." });
   }
 };
+
+// Récupérer tous les utilisateurs sauf l'utilisateur connecté pour le chat 
+exports.getAllUsers = async (req, res) => {
+    try {
+        // On récupère tout le monde sauf l'utilisateur connecté
+        const [users] = await db.query(
+            "SELECT id, username, url_photo FROM users WHERE id != ?", 
+            [req.user.id]
+        );
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Erreur récupération utilisateurs" });
+    }
+};

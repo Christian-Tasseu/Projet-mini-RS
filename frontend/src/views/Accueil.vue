@@ -1,88 +1,113 @@
 <template>
-  <div class="contain">
-    <div class="header">
+  <div class="main-wrapper">
+    <header class="header">
       <div @click="profilPage" class="username">
         <img :src="url_image_profile" alt="" /><span>{{ username }}</span>
       </div>
 
       <button translate="no" @click="deconnexion">Logout</button>
-    </div>
-    <div class="post-contain">
-      <textarea v-model="message" placeholder="Exprimez vous...🖋️"></textarea>
-      <input
-        type="file"
-        @change="onFileSelected"
-        accept="image/*"
-        style="display: none"
-        ref="fileInput"
-      />
-      <button @click="$refs.fileInput.click()" class="btn-add-picture">
-        <font-awesome-icon icon="fa-solid fa-camera" />
-      </button>
-      <button class="post-btn" @click="publier">Publier</button>
+    </header>
 
-      <div v-if="imagePreview">
-        <img
-          :src="imagePreview"
-          style="max-width: 200px; border-radius: 10px"
+    <div class="grid-container">
+      <aside class="sidebar-left"></aside>
+
+      <main v-if="!isChatOpen" class="feed-content">
+        <div class="post-contain">
+          <textarea
+            v-model="message"
+            placeholder="Exprimez vous...🖋️"
+          ></textarea>
+          <input
+            type="file"
+            @change="onFileSelected"
+            accept="image/*"
+            style="display: none"
+            ref="fileInput"
+          />
+          <button @click="$refs.fileInput.click()" class="btn-add-picture">
+            <font-awesome-icon icon="fa-solid fa-camera" />
+          </button>
+          <button class="post-btn" @click="publier">Publier</button>
+
+          <div v-if="imagePreview">
+            <img
+              :src="imagePreview"
+              style="max-width: 200px; border-radius: 10px"
+            />
+            <button
+              @click="annulerImage"
+              class="post-btn"
+              style="background-color: red; position: relative; top: -10px"
+            >
+              <font-awesome-icon icon="fa-solid fa-trash" />
+            </button>
+          </div>
+        </div>
+
+        <div v-if="isLoading" class="posts">
+          <div v-for="n in 3" :key="n" class="post" style="opacity: 0.7">
+            <div
+              class="skeleton skeleton-avatar"
+              style="position: relative; top: 25px; left: -60px"
+            ></div>
+            <div
+              class="skeleton skeleton-title"
+              style="margin-left: 20px"
+            ></div>
+            <div class="skeleton skeleton-text"></div>
+          </div>
+        </div>
+        <div v-if="listPost.length == 0" class="alert">
+          <p>Aucune publication pour l'instant...</p>
+        </div>
+        <transition-group tag="div" name="posts" class="posts">
+          <PostCard
+            v-for="(post, index) in listPost"
+            :key="post.id"
+            :post="post"
+            :token="token"
+            :currentUser="username"
+            @delete-post="deletePost"
+            @like="addAndRemoveFAv"
+            @toggle-comments="toggleComments"
+            @add-comment="addComment"
+            @go-to-profile="goToProfile"
+          />
+        </transition-group>
+      </main>
+
+      <section :class="['sidebar-right', { 'chat-full-view': isChatOpen }]">
+        <div v-if="!isChatOpen" class="message-list-preview">
+          <h3>Messages</h3>
+          <div
+            v-for="user in users"
+            :key="user.id"
+            @click="openConversation(user)"
+            class="user-item"
+          >
+            <img
+              :src="user.url_photo || 'default-avatar.png'"
+              class="mini-avatar-list"
+            />
+            <div class="user-meta">
+              <strong>{{ user.username }}</strong>
+              <small>Voir la conversation</small>
+            </div>
+          </div>
+        </div>
+
+        <ChatComponent
+          v-else
+          @close="isChatOpen = false"
+          :activeUser="selectedUser"
         />
-        <button
-          @click="annulerImage"
-          class="post-btn"
-          style="background-color: red; position: relative; top: -10px"
-        >
-          <font-awesome-icon icon="fa-solid fa-trash" />
-        </button>
-      </div>
+      </section>
     </div>
-    <!-- <div class="list-user">
-      <div class="user" v-for="user in users">
-        <span
-          style="
-            display: block;
-            width: 30px;
-            height: 30px;
-            margin: auto;
-            border-radius: 100%;
-            background-color: white;
-          "
-          ><font-awesome-icon icon="fa-solid fa-user"
-        /></span>
-        <span>{{ user }}</span>
-      </div>
-    </div> -->
-    <!-- affichage des post  -->
-    <div v-if="isLoading" class="posts">
-      <div v-for="n in 3" :key="n" class="post" style="opacity: 0.7">
-        <div
-          class="skeleton skeleton-avatar"
-          style="position: relative; top: 25px; left: -60px"
-        ></div>
-        <div class="skeleton skeleton-title" style="margin-left: 20px"></div>
-        <div class="skeleton skeleton-text"></div>
-      </div>
-    </div>
-    <div v-if="listPost.length == 0" class="alert">
-      <p>Aucune publication pour l'instant...</p>
-    </div>
-    <transition-group tag="div" name="posts" class="posts">
-      <PostCard
-        v-for="(post, index) in listPost"
-        :key="post.id"
-        :post="post"
-        :token="token"
-        :currentUser="username"
-        @delete-post="deletePost"
-        @like="addAndRemoveFAv"
-        @toggle-comments="toggleComments"
-        @add-comment="addComment"
-        @go-to-profile="goToProfile"
-      />
-    </transition-group>
   </div>
 </template>
 <script>
 import PostCard from "/src/views/PostCard.vue";
+import ChatComponent from "./Chat.vue";
 import { apiService } from "../services/api";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -111,6 +136,7 @@ dayjs.locale("fr");
 export default {
   components: {
     PostCard,
+    ChatComponent,
   },
   data() {
     return {
@@ -126,6 +152,8 @@ export default {
       nbLikes: 0,
       selectedFile: null,
       imagePreview: null,
+      isChatOpen: false,
+      selectedUser: null,
     };
   },
   async mounted() {
@@ -153,6 +181,14 @@ export default {
     } catch (error) {
       this.isLoading = false;
       console.error("Erreur lors du chargement des données : ", error);
+    }
+
+    // Récupération de tous les utilisateurs pour le chat
+    try {
+      const allUsers = await apiService.getAllUsers(this.token);
+      this.users = allUsers; // Maintenant 'users' contient des objets {id, username, url_photo}
+    } catch (err) {
+      console.error("Impossible de charger les utilisateurs", err);
     }
   },
   methods: {
@@ -229,6 +265,11 @@ export default {
     // Navigation vers le profil
     goToProfile(post) {
       this.$router.push(`/profil/${post.userId}`);
+    },
+    // Ouvrir une conversation
+    openConversation(user) {
+      this.selectedUser = user;
+      this.isChatOpen = true;
     },
     // Affichage des commentaires
     async toggleComments(post) {
@@ -316,15 +357,101 @@ body {
   margin: 0;
   overflow: hidden;
 }
-.contain {
+.main-wrapper {
   width: 100%;
   min-height: 100vh;
   margin: 0;
   border-radius: 0;
   box-shadow: none;
+  background-color: #f0f2f5;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) 280px;
+  gap: 16px;
+  padding: 10px 16px 16px;
+}
+
+.sidebar-left,
+.feed-content,
+.sidebar-right {
+  background: #ffffff;
+  border-radius: 12px;
+}
+
+.sidebar-left,
+.sidebar-right {
+  min-height: 300px;
+  padding: 12px;
+}
+
+.feed-content {
+  min-width: 0;
+  padding-bottom: 14px;
+}
+
+.message-list-preview h3 {
+  margin: 0 0 20px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #1d2a44;
+}
+
+.message-list-preview {
   display: flex;
   flex-direction: column;
-  background-color: #f0f2f5;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.user-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 1px solid #e5ecfb;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.user-item:hover {
+  background-color: #eef3ff;
+  border-color: #c7d8ff;
+  transform: translateX(2px);
+}
+
+.mini-avatar-list {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #d8e5ff;
+}
+
+.user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.user-meta strong {
+  font-size: 14px;
+  color: #132238;
+}
+
+.user-meta small {
+  font-size: 12px;
+  color: #6a7890;
+}
+
+.chat-full-view {
+  grid-column: 2 / 4;
 }
 .header {
   width: 100%;
@@ -427,6 +554,7 @@ textarea {
   background-size: 200% 100%;
   animation: 1.5s shine linear infinite;
 }
+
 @keyframes shine {
   to {
     background-position-x: -200%;
@@ -449,6 +577,16 @@ textarea {
 
 /* Responsive adjustments */
 @media (max-width: 900px) {
+  .grid-container {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar-left,
+  .sidebar-right,
+  .chat-full-view {
+    grid-column: 1;
+  }
+
   .post-contain {
     flex-direction: column;
     align-items: stretch;
