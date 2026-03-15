@@ -95,12 +95,20 @@ export default {
   width: 100%;
   max-width: 900px;
   margin: 10px auto;
-  padding: 1rem;
-  border-radius: 15px;
-  background-color: white;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border: 1px solid #dbe5f4;
+  box-shadow: 0 8px 20px rgba(24, 44, 79, 0.08);
   text-align: left;
   box-sizing: border-box;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
+
+/* .post:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(24, 44, 79, 0.12);
+} */
 
 .post .publisher {
   display: inline-flex;
@@ -140,8 +148,11 @@ export default {
 
 .post .message {
   display: block;
-  margin-top: 8px;
+  margin-top: 10px;
+  margin-bottom: 8px;
   font-size: 14px;
+  line-height: 1.45;
+  color: #1f2b3d;
 }
 
 .post .img-container {
@@ -152,7 +163,8 @@ export default {
   width: 100%;
   max-height: 400px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 12px;
+  border: 1px solid #d8e3f5;
   margin-top: 10px;
 }
 
@@ -182,7 +194,8 @@ export default {
 }
 
 .comments-container {
-  background-color: #f1f1f1;
+  background-color: #f0edff;
+  border: 1px solid #d8e5fb;
   padding: 20px;
   border-radius: 15px;
   margin: 10px 0;

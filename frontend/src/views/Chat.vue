@@ -1,7 +1,7 @@
 <template>
   <div class="chat-container">
     <div class="chat-header">
-      <div class="user-info">
+      <div class="user-info" @click="goToActiveUserProfile">
         <img
           v-if="activeUser.url_photo"
           :src="activeUser.url_photo"
@@ -79,6 +79,10 @@ export default {
   },
 
   methods: {
+    goToActiveUserProfile() {
+      if (!this.activeUser?.id) return;
+      this.$router.push(`/profil/${this.activeUser.id}`);
+    },
     formatDate(date) {
       if (!date) return "";
       // Utilise dayjs (déjà installé dans ton projet) pour un joli rendu
@@ -146,6 +150,12 @@ export default {
   align-items: center;
   gap: 10px;
   font-weight: bold;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.user-info:hover {
+  opacity: 0.8;
 }
 
 .avatar-mini {

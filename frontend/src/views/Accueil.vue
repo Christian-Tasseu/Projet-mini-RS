@@ -9,7 +9,31 @@
     </header>
 
     <div class="grid-container">
-      <aside class="sidebar-left"></aside>
+      <aside class="sidebar-left">
+        <div class="profile-mini-card" @click="profilPage">
+          <img
+            :src="url_image_profile || defaultProfileImage"
+            alt="Photo de profil"
+            class="profile-mini-avatar"
+          />
+          <p class="profile-mini-name">{{ username || "Utilisateur" }}</p>
+
+          <div class="profile-mini-stats">
+            <div class="mini-stat">
+              <span class="mini-stat-value">{{ followersCount }}</span>
+              <span class="mini-stat-label">followers</span>
+            </div>
+            <div class="mini-stat">
+              <span class="mini-stat-value">{{ followingCount }}</span>
+              <span class="mini-stat-label">following</span>
+            </div>
+          </div>
+
+          <button class="btn-view-profile" @click.stop="profilPage">
+            Voir profil
+          </button>
+        </div>
+      </aside>
 
       <main v-if="!isChatOpen" class="feed-content">
         <div class="post-contain">
@@ -103,6 +127,11 @@
         />
       </section>
     </div>
+
+    <footer class="app-footer">
+      <span>Mini RS - 2026</span>
+      <span>Connecte, partage, echange</span>
+    </footer>
   </div>
 </template>
 <script>
@@ -149,6 +178,9 @@ export default {
       poster: "",
       message: "",
       url_image_profile: "",
+      defaultProfileImage: "http://localhost:3000/images/img-no-profil.avif",
+      followersCount: 0,
+      followingCount: 0,
       nbLikes: 0,
       selectedFile: null,
       imagePreview: null,
@@ -171,6 +203,15 @@ export default {
       const profilData = await apiService.getProfil(this.token);
       this.username = profilData[0].username;
       this.url_image_profile = profilData[0].url_photo;
+
+      if (profilData[0]?.id) {
+        const publicProfile = await apiService.getPublicProfile(
+          profilData[0].id,
+          this.token,
+        );
+        this.followersCount = publicProfile?.user?.followersCount || 0;
+        this.followingCount = publicProfile?.user?.followingCount || 0;
+      }
 
       //affichage des publications
       const posts = await apiService.getAllPosts(this.token);
@@ -355,9 +396,11 @@ export default {
 <style scoped>
 body {
   margin: 0;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 .main-wrapper {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 100vh;
   margin: 0;
@@ -371,6 +414,7 @@ body {
   grid-template-columns: 230px minmax(0, 1fr) 280px;
   gap: 16px;
   padding: 10px 16px 16px;
+  align-items: start;
 }
 
 .sidebar-left,
@@ -382,8 +426,96 @@ body {
 
 .sidebar-left,
 .sidebar-right {
+  position: sticky;
+  top: 10px;
+  max-height: calc(100vh - 90px);
   min-height: 300px;
   padding: 12px;
+  overflow: hidden;
+}
+
+.profile-mini-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 14px;
+  border-radius: 14px;
+  border: 1px solid #dde7fb;
+  background: linear-gradient(180deg, #ffffff 0%, #f6f9ff 100%);
+  box-shadow: 0 8px 18px rgba(23, 44, 80, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-mini-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(23, 44, 80, 0.12);
+}
+
+.profile-mini-avatar {
+  width: 74px;
+  height: 74px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #d7e5ff;
+}
+
+.profile-mini-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #132238;
+  text-align: center;
+}
+
+.profile-mini-stats {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background-color: #ecf3ff;
+}
+
+.mini-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f2a57;
+}
+
+.mini-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #5e6f8f;
+}
+
+.btn-view-profile {
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: #1e5eff;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-view-profile:hover {
+  background: #154fe5;
+  transform: translateY(-1px);
 }
 
 .feed-content {
@@ -402,7 +534,7 @@ body {
   display: flex;
   flex-direction: column;
   max-height: calc(100vh - 180px);
-  overflow-y: auto;
+  overflow: hidden;
   padding-right: 4px;
 }
 
@@ -546,6 +678,8 @@ textarea {
   display: flex;
   flex-direction: column;
   margin-top: 20px;
+  gap: 14px;
+  padding: 0 10px 12px;
 }
 /* Skeleton and animations (unchanged) */
 .skeleton {
@@ -553,6 +687,22 @@ textarea {
   border-radius: 5px;
   background-size: 200% 100%;
   animation: 1.5s shine linear infinite;
+}
+
+/* Footer */
+
+.app-footer {
+  flex-shrink: 0;
+  height: 74px;
+  margin-top: 50px;
+  padding: 0 18px;
+  background: #ffffff;
+  border-top: 1px solid #d9e5fb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #4b5f82;
 }
 
 @keyframes shine {
@@ -585,6 +735,8 @@ textarea {
   .sidebar-right,
   .chat-full-view {
     grid-column: 1;
+    position: static;
+    max-height: none;
   }
 
   .post-contain {
