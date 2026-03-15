@@ -1,16 +1,48 @@
 <template>
   <div class="wrapper-contain">
     <div class="contain">
-      <header>Profil</header>
-      <div v-if="imagePreview" class="img-profil">
-        <img :src="imagePreview" alt="Photo de profil" />
-        <button @click="annulerImage" class="cancel-btn">
-          <font-awesome-icon icon="fa-solid fa-trash" />
+      <header>
+        {{ isOwnProfile ? "Mon Profil" : "Profil de " + username }}
+      </header>
+
+      <div class="img-profil-container">
+        <div v-if="imagePreview" class="img-profil">
+          <img :src="imagePreview" alt="Aperçu" />
+          <button v-if="isOwnProfile" @click="annulerImage" class="cancel-btn">
+            <font-awesome-icon icon="fa-solid fa-trash" />
+          </button>
+        </div>
+        <div v-else class="img-profil">
+          <img :src="urlPhoto" alt="Photo de profil" />
+        </div>
+
+        <button
+          v-if="isOwnProfile"
+          @click="$refs.inputFile.click()"
+          class="edit-photo-btn"
+        >
+          <font-awesome-icon icon="fa-solid fa-camera" />
         </button>
       </div>
-      <div v-else class="img-profil">
-        <img :src="urlPhoto" alt="Photo de profil" />
+
+      <div class="stats-bar">
+        <div class="stat-item">
+          <strong>{{ followersCount }}</strong> followers
+        </div>
+        <div class="stat-item">
+          <strong>{{ followingCount }}</strong> following
+        </div>
       </div>
+
+      <div v-if="!isOwnProfile" class="action-center">
+        <button
+          @click="toggleFollow"
+          :class="isFollowed ? 'btn-unfollow' : 'btn-follow'"
+        >
+          {{ isFollowed ? "Désabonné" : "Suivre" }}
+        </button>
+      </div>
+
       <input
         type="file"
         @change="onFileSelected"
@@ -19,64 +51,61 @@
         style="display: none"
       />
 
-      <button @click="$refs.inputFile.click()" class="edit">
-        <font-awesome-icon icon="fa-solid fa-edit" />
-      </button>
       <div class="info-profil">
         <div class="info-row">
           <p>Nom</p>
           <span class="value" v-if="!activeModifName">{{ username }}</span>
           <span class="value" v-else>
             <input ref="nameInput" v-model="newName" type="text" />
-            <button class="cancel" @click="cancelName">Annuler</button>
           </span>
-          <span class="edit-icon" @click="activeModifName ? validNewName(userId) : modifName()">
-            <font-awesome-icon :icon="activeModifName ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
+          <span
+            v-if="isOwnProfile"
+            class="edit-icon"
+            @click="activeModifName ? validNewName() : modifName()"
+          >
+            <font-awesome-icon
+              :icon="activeModifName ? 'fa-solid fa-save' : 'fa-solid fa-edit'"
+            />
           </span>
         </div>
+
         <div class="info-row">
           <p>Bio</p>
-          <span class="value" v-if="!activeModifBio">{{ bio }}</span>
+          <span class="value" v-if="!activeModifBio">{{
+            bio || "Aucune bio"
+          }}</span>
           <span class="value" v-else>
             <input ref="bioInput" v-model="newBio" type="text" />
-            <button class="cancel" @click="cancelBio">Annuler</button>
           </span>
-          <span class="edit-icon" @click="activeModifBio ? validNewBio() : modifBio()">
-            <font-awesome-icon :icon="activeModifBio ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
-          </span>
-        </div>
-        <div class="info-row">
-          <p>E-mail</p>
-          <span class="value" v-if="!activeModifEmail">{{ email }}</span>
-          <span class="value" v-else>
-            <input ref="emailInput" v-model="newEmail" type="text" />
-            <button class="cancel" @click="cancelEmail">Annuler</button>
-          </span>
-          <span class="edit-icon" @click="activeModifEmail ? validNewEmail() : modifEmail()">
-            <font-awesome-icon :icon="activeModifEmail ? 'fa-solid fa-save' : 'fa-solid fa-edit'" />
+          <span
+            v-if="isOwnProfile"
+            class="edit-icon"
+            @click="activeModifBio ? validNewBio() : modifBio()"
+          >
+            <font-awesome-icon
+              :icon="activeModifBio ? 'fa-solid fa-save' : 'fa-solid fa-edit'"
+            />
           </span>
         </div>
       </div>
+
       <div class="updateProfil">
         <button
+          v-if="isOwnProfile"
           @click="updateProfil"
           class="update-btn"
-          :class="{ colorBlue }
-        ">
+          :class="{ colorBlue }"
+        >
           Appliquer les modifications
         </button>
-        <button
-          @click="goHome"
-          class="home-btn"
-        >
-          Retour à l'accueil
-        </button>
+        <button @click="goHome" class="home-btn">Retour à l'accueil</button>
       </div>
     </div>
   </div>
 </template>
 <script>
 import Swal from "sweetalert2";
+import { apiService } from "../services/api";
 
 const Toast = Swal.mixin({
   toast: true,
@@ -108,35 +137,60 @@ export default {
       imagePreview: null,
       selectedFile: null,
       colorBlue: false,
+      isOwnProfile: false,
+      followersCount: 0,
+      followingCount: 0,
+      isFollowed: false,
+      userPosts: [],
     };
   },
   async mounted() {
     this.token = localStorage.getItem("token");
-    if (!this.token) {
-      // Si pas de token, on redirige vers la connexion
-      this.$router.push("/");
-      return;
-    }
-    try {
-      const reponse = await fetch("http://localhost:3000/api/profil", {
-        headers: {
-          authorization: `Bearer ${this.token}`,
-        },
-      });
-      if (reponse.ok) {
-        const [data] = await reponse.json();
-        console.log(data);
-        this.username = data.username;
-        this.bio = data.bio;
-        this.email = data.email;
-        this.userId = data.id;
-        this.urlPhoto = data.url_photo;
-      }
-    } catch (err) {
-      console.error("Erreur lors de la récupération du profil:", err);
+    const myDataArray = await apiService.getProfil(this.token);
+    const myId = myDataArray[0].id;
+    const targetId = this.$route.params.id;
+
+    // Si pas d'ID dans l'URL ou si l'ID est le mien
+    if (!targetId || targetId == myId) {
+      this.isOwnProfile = true;
+      const data = await apiService.getPublicProfile(targetId, this.token);
+      this.userId = myId;
+      this.fillData(data.user);
+      this.followersCount = data.user.followersCount;
+      this.followingCount = data.user.followingCount;
+    } else {
+      // C'est le profil de quelqu'un d'autre
+      this.isOwnProfile = false;
+      const data = await apiService.getPublicProfile(targetId, this.token);
+      this.fillData(data.user);
+      this.userPosts = data.posts;
+      this.followersCount = data.user.followersCount;
+      this.followingCount = data.user.followingCount;
+      this.isFollowed = data.user.isFollowed;
     }
   },
   methods: {
+    fillData(user) {
+      this.username = user.username;
+      this.bio = user.bio;
+      this.email = user.email;
+      this.urlPhoto = user.url_photo;
+      this.userId = user.id;
+    },
+    async toggleFollow() {
+      try {
+        if (this.isFollowed) {
+          await apiService.unfollowUser(this.userId, this.token);
+          this.followersCount--;
+        } else {
+          await apiService.followUser(this.userId, this.token);
+          this.followersCount++;
+        }
+        this.isFollowed = !this.isFollowed;
+      } catch (err) {
+        console.error("Erreur follow/unfollow", err);
+      }
+    },
     // Affichage de l'image temporaire
     async onFileSelected(e) {
       const file = e.target.files[0];
@@ -161,17 +215,12 @@ export default {
         formData.append("image", this.selectedFile);
       }
       try {
-        const reponse = await fetch(
-          `http://localhost:3000/api/profil/profilImage/${this.userId}`,
-          {
-            method: "PUT",
-            headers: {
-              authorization: `Bearer ${this.token}`,
-            },
-            body: formData,
-          },
+        const ok = await apiService.updateProfilImage(
+          this.userId,
+          this.token,
+          formData,
         );
-        if (reponse.ok) {
+        if (ok) {
           Toast.fire({
             icon: "success",
             title: "Profil mis à jour avec succès !",
@@ -191,7 +240,9 @@ export default {
     modifName() {
       this.newName = this.username;
       this.activeModifName = true;
-      this.$nextTick(() => this.$refs.nameInput && this.$refs.nameInput.focus());
+      this.$nextTick(
+        () => this.$refs.nameInput && this.$refs.nameInput.focus(),
+      );
     },
     modifBio() {
       this.newBio = this.bio;
@@ -201,22 +252,18 @@ export default {
     modifEmail() {
       this.newEmail = this.email;
       this.activeModifEmail = true;
-      this.$nextTick(() => this.$refs.emailInput && this.$refs.emailInput.focus());
+      this.$nextTick(
+        () => this.$refs.emailInput && this.$refs.emailInput.focus(),
+      );
     },
     async validNewName(userId) {
       try {
-        const reponse = await fetch(
-          `http://localhost:3000/api/profil/profilName/${this.userId}`,
-          {
-            method: "PUT",
-            headers: {
-              authorization: `Bearer ${this.token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ newName: this.newName }),
-          },
+        const ok = await apiService.updateUsername(
+          this.userId,
+          this.token,
+          this.newName,
         );
-        if (reponse.ok) {
+        if (ok) {
           Toast.fire({
             icon: "success",
             title: "Nom utilisateur mis à jour avec succès !",
@@ -232,18 +279,12 @@ export default {
     },
     async validNewBio(userId) {
       try {
-        const reponse = await fetch(
-          `http://localhost:3000/api/profil/profilBio/${this.userId}`,
-          {
-            method: "PUT",
-            headers: {
-              authorization: `Bearer ${this.token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ newBio: this.newBio }),
-          },
+        const ok = await apiService.updateBio(
+          this.userId,
+          this.token,
+          this.newBio,
         );
-        if (reponse.ok) {
+        if (ok) {
           Toast.fire({
             icon: "success",
             title: "Bio mise à jour avec succès !",
@@ -259,18 +300,12 @@ export default {
     },
     async validNewEmail() {
       try {
-        const reponse = await fetch(
-          `http://localhost:3000/api/profil/profilEmail/${this.userId}`,
-          {
-            method: "PUT",
-            headers: {
-              authorization: `Bearer ${this.token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ newEmail: this.newEmail }),
-          },
+        const ok = await apiService.updateEmail(
+          this.userId,
+          this.token,
+          this.newEmail,
         );
-        if (reponse.ok) {
+        if (ok) {
           Toast.fire({
             icon: "success",
             title: "E-mail mis à jour avec succès !",
@@ -285,18 +320,18 @@ export default {
       }
     },
     goHome() {
-      this.$router.push('/accueil');
+      this.$router.push("/accueil");
     },
     cancelName() {
-      this.newName = '';
+      this.newName = "";
       this.activeModifName = false;
     },
     cancelBio() {
-      this.newBio = '';
+      this.newBio = "";
       this.activeModifBio = false;
     },
     cancelEmail() {
-      this.newEmail = '';
+      this.newEmail = "";
       this.activeModifEmail = false;
     },
   },
@@ -304,7 +339,7 @@ export default {
 </script>
 <style scoped>
 .wrapper-contain {
-  height: 100vh; 
+  height: 100vh;
   width: 100vw;
   display: grid;
   place-items: center;
@@ -324,7 +359,7 @@ export default {
 }
 
 header {
-  margin: 0; 
+  margin: 0;
   padding: 20px;
   margin-bottom: 20px;
   border-radius: 8px 8px 0 0;
@@ -449,7 +484,10 @@ header {
   cursor: pointer;
   opacity: 0.3;
   margin: 0.5rem;
-  transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
+  transition:
+    background-color 0.2s,
+    opacity 0.2s,
+    transform 0.1s;
 }
 
 .updateProfil .update-btn.colorBlue {
@@ -461,7 +499,7 @@ header {
   opacity: 1;
 }
 
-.updateProfil .update-btn:hover{
+.updateProfil .update-btn:hover {
   opacity: 1;
   background-color: #1a1aff;
 }
@@ -480,6 +518,51 @@ header {
 .updateProfil .home-btn:active {
   transform: scale(0.97);
   background-color: #d60101;
+}
+
+.stats-bar {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin: 15px 0;
+  font-size: 0.9rem;
+}
+
+.action-center {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.btn-follow {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 25px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-unfollow {
+  background-color: #e4e6eb;
+  color: black;
+  border: none;
+  padding: 8px 25px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.edit-photo-btn {
+  position: absolute;
+  bottom: 0;
+  right: 10px;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  cursor: pointer;
 }
 
 @media (min-width: 900px) {

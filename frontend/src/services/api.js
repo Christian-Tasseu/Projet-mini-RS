@@ -15,6 +15,59 @@ export const apiService = {
       method: "POST",
       headers: { authorization: `Bearer ${token}` },
     });
+    return res.json();
+  },
+
+  async getPublicProfile(userId, token) {
+    const res = await fetch(`${BASE_URL}/profil/public/${userId}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  // Mises à jour de profil
+  async updateProfilImage(userId, token, formData) {
+    const res = await fetch(`${BASE_URL}/profil/profilImage/${userId}`, {
+      method: "PUT",
+      headers: { authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    return res.ok;
+  },
+
+  async updateUsername(userId, token, newName) {
+    const res = await fetch(`${BASE_URL}/profil/profilName/${userId}`, {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ newName }),
+    });
+    return res.ok;
+  },
+
+  async updateBio(userId, token, newBio) {
+    const res = await fetch(`${BASE_URL}/profil/profilBio/${userId}`, {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ newBio }),
+    });
+    return res.ok;
+  },
+
+  async updateEmail(userId, token, newEmail) {
+    const res = await fetch(`${BASE_URL}/profil/profilEmail/${userId}`, {
+      method: "PUT",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ newEmail }),
+    });
     return res.ok;
   },
 
@@ -60,6 +113,23 @@ export const apiService = {
     return res.json();
   },
 
+  // Suivre / Ne plus suivre un utilisateur
+  async followUser(userId, token) {
+    const res = await fetch(`${BASE_URL}/follow/follow/${userId}`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    return res.ok;
+  },
+
+  async unfollowUser(userId, token) {
+    const res = await fetch(`${BASE_URL}/follow/unfollow/${userId}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+    });
+    return res.ok;
+  },
+
   // Commentaires
   async getComments(postId) {
     const res = await fetch(`${BASE_URL}/comment/${postId}`);
@@ -76,5 +146,34 @@ export const apiService = {
       body: JSON.stringify({ post_id: postId, content }),
     });
     return res.ok;
+  },
+
+  // Chat
+  async getAllUsers(token) {
+    const res = await fetch(`${BASE_URL}/auth/all`, {
+      headers: {
+        authorization: `Bearer ${token}`,
+      },
+    });
+    return res.json();
+  },
+
+  async getMessages(otherUserId, token) {
+    const res = await fetch(`${BASE_URL}/message/${otherUserId}`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  },
+
+  async sendMessage(receiverId, content, token) {
+    const res = await fetch(`${BASE_URL}/message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ receiver_id: receiverId, content }),
+    });
+    return res.json();
   },
 };
